@@ -1,22 +1,8 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-
-export interface CartLineView {
-  productId: number;
-  name: string;
-  imageUrl: string | null;
-  unitPrice: number;
-  quantity: number;
-  availableStock: number;
-}
-
-export type CartPageViewState =
-  | { status: 'unavailable' }
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'empty' }
-  | { status: 'ready'; items: CartLineView[] };
+import { CartItem } from '../../../../core/models/cart.models';
+import { CartService } from '../../../../core/services/cart.service';
 
 @Component({
   selector: 'app-shopping-cart',
@@ -26,26 +12,36 @@ export type CartPageViewState =
   styleUrl: './shopping-cart.css',
 })
 export class ShoppingCart {
-  readonly state = input<CartPageViewState>({ status: 'unavailable' });
-  readonly quantityChange = output<{ productId: number; quantity: number }>();
-  readonly removeItem = output<number>();
+  private readonly cartService = inject(CartService);
 
-  readonly subtotal = computed(() => {
-    const state = this.state();
-    return state.status === 'ready'
-      ? state.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
-      : 0;
-  });
+  readonly items = this.cartService.items;
+  readonly itemCount = this.cartService.itemCount;
+  readonly subtotal = this.cartService.subtotal;
+  readonly total = this.cartService.total;
+  readonly isEmpty = this.cartService.isEmpty;
+  readonly errorMessage = signal('');
 
-  changeQuantity(item: CartLineView, event: Event): void {
-    const quantity = Number((event.target as HTMLInputElement).value);
-    if (
-      Number.isInteger(quantity) &&
-      quantity > 0 &&
-      quantity <= item.availableStock &&
-      quantity !== item.quantity
-    ) {
-      this.quantityChange.emit({ productId: item.productId, quantity });
+  changeQuantity(item: CartItem, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const quantity = Number(input.value);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      input.value = String(item.quantity);
+      this.errorMessage.set('Quantity must be a whole number greater than zero.');
+      return;
     }
+
+    if (item.maxStock !== undefined && quantity > item.maxStock) {
+      input.value = String(item.quantity);
+      this.errorMessage.set(`Only ${item.maxStock} unit(s) of ${item.productName} are available.`);
+      return;
+    }
+
+    this.errorMessage.set('');
+    this.cartService.updateQuantity(item.productId, quantity);
+  }
+
+  removeItem(productId: number): void {
+    this.errorMessage.set('');
+    this.cartService.removeItem(productId);
   }
 }

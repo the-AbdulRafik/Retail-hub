@@ -17,16 +17,6 @@ export interface Product {
   createdAt: string;
 }
 
-export interface PaginatedProducts {
-  items: Product[];
-  currentPage: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-}
-
 export interface ProductFilters {
   page: number;
   pageSize: number;

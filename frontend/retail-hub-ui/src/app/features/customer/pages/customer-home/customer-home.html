@@ -98,6 +98,9 @@
     }
 
   </div>
+  @if (categoryError()) {
+    <p class="catalog-error" role="alert">{{ categoryError() }}</p>
+  }
 
 </section>
 
@@ -117,6 +120,9 @@
     <div class="product-count">
       {{ totalCount() }} products
     </div>
+    <a routerLink="/customer/cart" class="view-details-link">
+      Cart ({{ cartItemCount() }})
+    </a>
 
   </div>
 
@@ -157,6 +163,9 @@
         }
       </select>
     </label>
+    @if (brandError()) {
+      <p class="catalog-error" role="alert">{{ brandError() }}</p>
+    }
 
     <label>
       Sort

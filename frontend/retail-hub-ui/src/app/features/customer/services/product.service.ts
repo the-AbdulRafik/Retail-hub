@@ -1,8 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../../core/config/api.config';
+import { PaginatedResponse } from '../../../core/models/pagination.models';
 import {
-  PaginatedProducts,
   Product,
   ProductFilters,
   ProductOption,
@@ -13,9 +14,9 @@ import {
 })
 export class ProductService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5266/api';
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
-  getProducts(filters: ProductFilters): Observable<PaginatedProducts> {
+  getProducts(filters: ProductFilters): Observable<PaginatedResponse<Product>> {
     let params = new HttpParams()
       .set('page', String(filters.page))
       .set('pageSize', String(filters.pageSize));
@@ -29,18 +30,18 @@ export class ProductService {
     if (filters.sortBy) params = params.set('sortBy', filters.sortBy);
     if (filters.sortOrder) params = params.set('sortOrder', filters.sortOrder);
 
-    return this.http.get<PaginatedProducts>(`${this.apiUrl}/products`, { params });
+    return this.http.get<PaginatedResponse<Product>>(`${this.apiBaseUrl}/products`, { params });
   }
 
   getProductById(id: number): Observable<Product> {
-    return this.http.get<Product>(`${this.apiUrl}/products/${id}`);
+    return this.http.get<Product>(`${this.apiBaseUrl}/products/${id}`);
   }
 
   getCategories(): Observable<ProductOption[]> {
-    return this.http.get<ProductOption[]>(`${this.apiUrl}/categories`);
+    return this.http.get<ProductOption[]>(`${this.apiBaseUrl}/categories`);
   }
 
   getBrands(): Observable<ProductOption[]> {
-    return this.http.get<ProductOption[]>(`${this.apiUrl}/brands`);
+    return this.http.get<ProductOption[]>(`${this.apiBaseUrl}/brands`);
   }
 }

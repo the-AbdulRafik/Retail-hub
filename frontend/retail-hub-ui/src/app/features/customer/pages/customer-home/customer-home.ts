@@ -1,10 +1,12 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
-import { PaginatedProducts, Product, ProductOption } from '../../models/product.model';
+import { extractApiErrorMessage } from '../../../../core/models/api-error.models';
+import { PaginatedResponse } from '../../../../core/models/pagination.models';
+import { CartService } from '../../../../core/services/cart.service';
+import { Product, ProductOption } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 
 @Component({
@@ -16,10 +18,12 @@ import { ProductService } from '../../services/product.service';
 })
 export class CustomerHome {
   private readonly productService = inject(ProductService);
+  private readonly cartService = inject(CartService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly searchInput = new Subject<string>();
 
-  readonly products = signal<Product[]>([]);
+  readonly cartItemCount = this.cartService.itemCount;
+  readonly products = signal<readonly Product[]>([]);
   readonly categories = signal<ProductOption[]>([]);
   readonly brands = signal<ProductOption[]>([]);
   readonly searchTerm = signal('');
@@ -36,6 +40,8 @@ export class CustomerHome {
   readonly hasNextPage = signal(false);
   readonly loading = signal(true);
   readonly errorMessage = signal('');
+  readonly categoryError = signal('');
+  readonly brandError = signal('');
 
   constructor() {
     this.loadOptions();
@@ -108,11 +114,17 @@ export class CustomerHome {
   private loadOptions(): void {
     this.productService.getCategories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (categories) => this.categories.set(categories),
-      error: () => this.categories.set([]),
+      error: (error: unknown) => {
+        this.categories.set([]);
+        this.categoryError.set(extractApiErrorMessage(error, 'Unable to load categories.'));
+      },
     });
     this.productService.getBrands().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (brands) => this.brands.set(brands),
-      error: () => this.brands.set([]),
+      error: (error: unknown) => {
+        this.brands.set([]);
+        this.brandError.set(extractApiErrorMessage(error, 'Unable to load brands.'));
+      },
     });
   }
 
@@ -130,7 +142,7 @@ export class CustomerHome {
       sortBy: this.sortBy(),
       sortOrder: this.sortOrder(),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (response: PaginatedProducts) => {
+      next: (response: PaginatedResponse<Product>) => {
         this.products.set(response.items);
         this.totalCount.set(response.totalCount);
         this.totalPages.set(response.totalPages);
@@ -138,10 +150,10 @@ export class CustomerHome {
         this.hasNextPage.set(response.hasNextPage);
         this.loading.set(false);
       },
-      error: (error: HttpErrorResponse) => {
+      error: (error: unknown) => {
         this.products.set([]);
         this.loading.set(false);
-        this.errorMessage.set(error.error?.detail ?? 'Unable to load products. Please try again.');
+        this.errorMessage.set(extractApiErrorMessage(error, 'Unable to load products. Please try again.'));
       },
     });
   }

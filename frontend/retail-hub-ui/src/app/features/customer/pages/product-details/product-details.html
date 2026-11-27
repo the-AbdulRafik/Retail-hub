@@ -100,15 +100,20 @@
           type="button"
           class="add-cart-button"
           (click)="addToCart()"
-          [disabled]="product.stockQuantity === 0"
+          [disabled]="product.stockQuantity === 0 || quantity() < 1 || quantity() > product.stockQuantity"
         >
           Add to Cart
         </button>
 
         @if (message()) {
-          <p class="error-message" role="alert">
-            {{ message() }}
-          </p>
+          @if (messageType() === 'success') {
+            <p class="success-message" role="status">
+              {{ message() }}
+              <a routerLink="/customer/cart">View cart</a>
+            </p>
+          } @else {
+            <p class="error-message" role="alert">{{ message() }}</p>
+          }
         }
 
       </div>
