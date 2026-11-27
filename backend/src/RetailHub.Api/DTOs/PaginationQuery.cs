@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace RetailHub.Api.DTOs;
 
 public class PaginationQuery
@@ -6,18 +8,9 @@ public class PaginationQuery
     public const int DefaultPageSize = 10;
     public const int MaxPageSize = 50;
 
-    private int _page = DefaultPage;
-    private int _pageSize = DefaultPageSize;
+    [Range(1, int.MaxValue, ErrorMessage = "Page must be greater than or equal to 1.")]
+    public int Page { get; set; } = DefaultPage;
 
-    public int Page
-    {
-        get => _page;
-        set => _page = value < 1 ? DefaultPage : value;
-    }
-
-    public int PageSize
-    {
-        get => _pageSize;
-        set => _pageSize = value < 1 ? DefaultPageSize : Math.Min(value, MaxPageSize);
-    }
+    [Range(1, MaxPageSize, ErrorMessage = "PageSize must be between 1 and 50.")]
+    public int PageSize { get; set; } = DefaultPageSize;
 }

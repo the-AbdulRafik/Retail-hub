@@ -4,10 +4,11 @@ RetailHub uses **Microsoft SQL Server** managed via **EF Core Code-First Migrati
 
 ## Default Local Connection
 
-Configured in `backend/src/RetailHub.Api/appsettings.Development.json`:
+Configured locally via `.NET User Secrets` (`ConnectionStrings:DefaultConnection`) rather than committed in `appsettings.Development.json`:
 
-```text
-Server=localhost\SQLEXPRESS;Database=RetailHubDb;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;
+```powershell
+cd backend/src/RetailHub.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost\SQLEXPRESS;Database=RetailHubDb;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;"
 ```
 
 This matches the local `MSSQL$SQLEXPRESS` Windows service using Integrated Windows Authentication with `Encrypt=True` and `TrustServerCertificate=True`.

@@ -38,10 +38,18 @@ RetailHub/
 
 ```powershell
 cd backend/src/RetailHub.Api
-dotnet user-secrets set "Jwt:Key" "YOUR_LOCAL_32_CHAR_MIN_SECRET_KEY"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost\SQLEXPRESS;Database=RetailHubDb;Trusted_Connection=True;Encrypt=True;TrustServerCertificate=True;"
+dotnet user-secrets set "Jwt:Key" "YOUR_LOCAL_32_BYTE_MIN_SECRET_KEY"
+dotnet user-secrets set "Jwt:Issuer" "RetailHub"
+dotnet user-secrets set "Jwt:Audience" "RetailHub.Client"
+dotnet user-secrets set "Jwt:ExpiresInMinutes" "60"
+dotnet user-secrets set "SeedAdmin:Email" "admin@retailhub.local"
+dotnet user-secrets set "SeedAdmin:Password" "YOUR_LOCAL_ADMIN_PASSWORD"
 dotnet ef database update
 dotnet run
 ```
+
+OpenAPI / Scalar UI in Development: `https://localhost:7090/scalar/v1` (or `http://localhost:5266/scalar/v1`).
 
 ### Frontend
 

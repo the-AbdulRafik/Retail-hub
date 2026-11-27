@@ -1,6 +1,6 @@
 # RetailHub API Contract
 
-> **Status:** Phase 1 Specification — Review and freeze before implementing Phase 2 controllers and Angular API services.
+> **Status:** Implemented MVP Specification — Interactive docs available at `/scalar/v1` and OpenAPI JSON at `/openapi/v1.json` in Development.
 
 ## 1. Conventions
 
@@ -9,17 +9,19 @@
 - **Authentication:** Bearer JWT in `Authorization: Bearer <token>` header.
 - **Roles:** `Customer`, `Admin`
 - **Timestamps:** ISO-8601 UTC strings (e.g., `2026-11-27T10:30:00Z`).
-- **Pagination Defaults:** `page = 1`, `pageSize = 10`, max `pageSize = 50`.
+- **Pagination Defaults:** `page = 1`, `pageSize = 10`, max `pageSize = 50`. Invalid `page < 1` or `pageSize` outside `1..50` returns `400 Bad Request`.
 
 ### Standard Paginated Response Envelope
 
 ```json
 {
   "items": [],
-  "page": 1,
+  "currentPage": 1,
   "pageSize": 10,
   "totalCount": 25,
-  "totalPages": 3
+  "totalPages": 3,
+  "hasPreviousPage": false,
+  "hasNextPage": true
 }
 ```
 
@@ -83,7 +85,7 @@ Validation failure (`400 Bad Request`):
 - **Validation:**
   - `displayName`: required, 2–100 chars.
   - `email`: required, valid email format, unique.
-  - `password`: required, min 8 chars, at least 1 uppercase, 1 lowercase, 1 digit.
+  - `password`: required, min 8 chars, at least 1 digit.
 - **201 Created:**
 ```json
 {
@@ -146,6 +148,12 @@ Validation failure (`400 Bad Request`):
 ```
 - **Status Codes:** `200 OK`.
 
+### `GET /api/brands/{id}`
+- **Auth:** Public (inactive brand visible only to `Admin`)
+- **Path Parameters:** `id` (`int`)
+- **200 OK:** Single brand object (`id`, `name`, `description`, `isActive`).
+- **Status Codes:** `200 OK`, `404 Not Found`.
+
 ### `POST /api/brands`
 - **Auth:** `Admin`
 - **Request JSON:**
@@ -201,6 +209,12 @@ Validation failure (`400 Bad Request`):
 ```
 - **Status Codes:** `200 OK`.
 
+### `GET /api/categories/{id}`
+- **Auth:** Public (inactive category visible only to `Admin`)
+- **Path Parameters:** `id` (`int`)
+- **200 OK:** Single category object (`id`, `name`, `description`, `isActive`).
+- **Status Codes:** `200 OK`, `404 Not Found`.
+
 ### `POST /api/categories`
 - **Auth:** `Admin`
 - **Request JSON:**
@@ -252,7 +266,7 @@ Validation failure (`400 Bad Request`):
   - `inStockOnly` (`bool`, optional, default `false`)
   - `includeInactive` (`bool`, optional, default `false`, `Admin` only)
   - `sortBy` (`string`, optional whitelist: `name`, `price`, `createdAt`, `stockQuantity`; default `name`)
-  - `sortDir` (`string`, optional whitelist: `asc`, `desc`; default `asc`)
+  - `sortOrder` (`string`, optional whitelist: `asc`, `desc`; default `asc`)
 - **200 OK:**
 ```json
 {
@@ -276,10 +290,12 @@ Validation failure (`400 Bad Request`):
       "createdAt": "2026-11-27T09:00:00Z"
     }
   ],
-  "page": 1,
+  "currentPage": 1,
   "pageSize": 10,
   "totalCount": 1,
-  "totalPages": 1
+  "totalPages": 1,
+  "hasPreviousPage": false,
+  "hasNextPage": false
 }
 ```
 - **Status Codes:** `200 OK`, `400 Bad Request` (invalid sort field or invalid price range).
@@ -363,13 +379,21 @@ Validation failure (`400 Bad Request`):
       "rowVersion": "AAAAAAAAB9E="
     }
   ],
-  "page": 1,
+  "currentPage": 1,
   "pageSize": 10,
   "totalCount": 1,
-  "totalPages": 1
+  "totalPages": 1,
+  "hasPreviousPage": false,
+  "hasNextPage": false
 }
 ```
-- **Status Codes:** `200 OK`, `401 Unauthorized`, `403 Forbidden`.
+- **Status Codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`.
+
+### `GET /api/inventory/{productId}`
+- **Auth:** `Admin`
+- **Path Parameters:** `productId` (`int`)
+- **200 OK:** Single inventory item (same shape as item above).
+- **Status Codes:** `200 OK`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`.
 
 ### `PUT /api/inventory/{productId}`
 - **Auth:** `Admin`
@@ -433,9 +457,9 @@ Validation failure (`400 Bad Request`):
 
 ### `GET /api/orders/my`
 - **Auth:** Authenticated (`Customer` or `Admin`)
-- **Query Parameters:** `page` (`1`), `pageSize` (`10`, max `50`), `status` (optional `OrderStatus`).
-- **200 OK:** Paginated list of orders owned by the current authenticated user (newest first).
-- **Status Codes:** `200 OK`, `401 Unauthorized`.
+- **Query Parameters:** `page` (`1`), `pageSize` (`10`, max `50`), `status` (optional `OrderStatus`), `search` (optional `OrderNumber`).
+- **200 OK:** `PaginatedResponse<OrderResponse>` owned by the current authenticated user (newest first).
+- **Status Codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`.
 
 ### `GET /api/orders/{id}`
 - **Auth:** Authenticated; `Customer` may access **only** their own order, `Admin` may access any order.
@@ -446,8 +470,8 @@ Validation failure (`400 Bad Request`):
 ### `GET /api/orders`
 - **Auth:** `Admin`
 - **Query Parameters:** `page` (`1`), `pageSize` (`10`, max `50`), `status` (optional), `search` (optional `OrderNumber` or customer name/email).
-- **200 OK:** Paginated list of all orders (newest first).
-- **Status Codes:** `200 OK`, `401 Unauthorized`, `403 Forbidden`.
+- **200 OK:** `PaginatedResponse<OrderResponse>` of all orders (newest first).
+- **Status Codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`.
 
 ### `PATCH /api/orders/{id}/status`
 - **Auth:** `Admin`
@@ -458,6 +482,12 @@ Validation failure (`400 Bad Request`):
   "status": "Confirmed"
 }
 ```
-- **Validation:** `status` must be one of `Pending`, `Confirmed`, `Preparing`, `OutForDelivery`, `Delivered`, `Cancelled` and respect valid status transitions.
+- **Validation & State Transitions:**
+  - `Pending` -> `Confirmed` or `Cancelled`
+  - `Confirmed` -> `Preparing` or `Cancelled`
+  - `Preparing` -> `OutForDelivery` or `Cancelled`
+  - `OutForDelivery` -> `Delivered`
+  - `Delivered` and `Cancelled` are terminal states.
+  - Transitioning to `Cancelled` atomically restores `StockQuantity` for all order items inside a transaction.
 - **200 OK:** Updated order object.
 - **Status Codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `409 Conflict` (invalid state transition).
