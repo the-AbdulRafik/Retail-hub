@@ -1,3 +1,4 @@
+
 <section class="dashboard">
   <div class="page-heading">
     <div>
@@ -31,7 +32,10 @@
           <h3>Recent Orders</h3>
           <p>Latest customer orders</p>
         </div>
-        <span class="record-count">{{ recentOrders.length }} orders</span>
+
+        <span class="record-count">
+          {{ recentOrders.length }} orders
+        </span>
       </div>
 
       <div class="table-wrapper">
@@ -56,7 +60,10 @@
                   {{ order.amount | currency:'INR':'symbol':'1.0-0' }}
                 </td>
                 <td>
-                  <span class="status-badge" [class]="order.status.toLowerCase()">
+                  <span
+                    class="status-badge"
+                    [class]="order.status.toLowerCase()"
+                  >
                     {{ order.status }}
                   </span>
                 </td>
@@ -73,7 +80,10 @@
           <h3>Low Stock Alerts</h3>
           <p>Products that need restocking</p>
         </div>
-        <span class="alert-count">{{ lowStockProducts.length }}</span>
+
+        <span class="alert-count">
+          {{ lowStockProducts.length }}
+        </span>
       </div>
 
       <div class="stock-list">
