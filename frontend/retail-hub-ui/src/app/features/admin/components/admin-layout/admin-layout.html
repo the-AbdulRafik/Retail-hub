@@ -1,0 +1,49 @@
+
+<div class="admin-workspace">
+  <aside class="admin-sidebar">
+    <div class="sidebar-heading">
+      <span class="sidebar-brand-icon">R</span>
+      <div>
+        <h2>RetailHub</h2>
+        <p>ADMINISTRATION</p>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">WORKSPACE</div>
+
+    <nav class="sidebar-navigation" aria-label="Admin navigation">
+      @for (item of navigation; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.route === '/admin' }"
+        >
+          <span class="nav-icon">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="admin-avatar">A</span>
+      <div>
+        <strong>Administrator</strong>
+        <small>Store management</small>
+      </div>
+    </div>
+  </aside>
+
+  <section class="admin-content">
+    <header class="admin-topbar">
+      <div>
+        <span class="breadcrumb">RetailHub / Administration</span>
+        <h1>Admin Workspace</h1>
+      </div>
+      <a routerLink="/customer" class="portal-link">View Customer Portal ↗</a>
+    </header>
+
+    <main class="admin-page">
+      <router-outlet />
+    </main>
+  </section>
+</div>
