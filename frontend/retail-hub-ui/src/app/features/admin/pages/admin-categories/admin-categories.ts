@@ -25,6 +25,7 @@ export class AdminCategories implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected searchTerm = '';
+  protected includeInactive = false;
   protected categories: Category[] = [];
 
   protected isLoading = false;
@@ -42,8 +43,6 @@ export class AdminCategories implements OnInit {
     name: '',
     description: '',
   };
-
-  // Enable only after shared Admin authentication is integrated.
   protected readonly canManageCategories = true;
 
   ngOnInit(): void {
@@ -69,7 +68,7 @@ export class AdminCategories implements OnInit {
     this.errorMessage = '';
 
     this.categoryApi
-      .getCategories()
+      .getCategories(this.includeInactive)
       .pipe(
         finalize(() => {
           this.isLoading = false;
@@ -177,11 +176,39 @@ export class AdminCategories implements OnInit {
         error: (error) => {
           console.error('Failed to save category:', error);
           this.formError =
-            'Unable to save the category. Admin authentication is required.';
+            'Unable to save the category. Please try again.';
         },
       });
   }
 
+  protected reactivateCategory(category: Category): void {
+    if (!this.canManageCategories || this.isSaving || category.isActive) return;
+
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.categoryApi
+      .updateCategory(category.id, {
+        name: category.name,
+        description: category.description ?? null,
+        isActive: true,
+      })
+      .pipe(finalize(() => {
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: () => {
+          this.successMessage = `${category.name} reactivated successfully.`;
+          this.loadCategories();
+        },
+        error: (error) => {
+          console.error('Failed to reactivate category:', error);
+          this.errorMessage = 'Unable to reactivate the category. Please try again.';
+        },
+      });
+  }
   protected deactivateCategory(category: Category): void {
     if (!this.canManageCategories || this.isSaving) return;
 
@@ -212,7 +239,7 @@ export class AdminCategories implements OnInit {
         error: (error) => {
           console.error('Failed to deactivate category:', error);
           this.errorMessage =
-            'Unable to deactivate the category. Admin authentication is required.';
+            'Unable to deactivate the category. Please try again.';
         },
       });
   }

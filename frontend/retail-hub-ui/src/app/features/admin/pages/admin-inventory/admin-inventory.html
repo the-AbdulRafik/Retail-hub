@@ -1,4 +1,4 @@
-﻿<section class="inventory-page">
+<section class="inventory-page">
   <header class="page-header">
     <div>
       <h1>Inventory Management</h1>
@@ -88,7 +88,7 @@
                   type="button"
                   (click)="openUpdateForm(item)"
                   [disabled]="!canManageInventory"
-                  [title]="canManageInventory ? 'Update stock' : 'Waiting for shared authentication'"
+                  title="Update stock"
                 >
                   Update
                 </button>
@@ -101,7 +101,7 @@
 
     <div class="pagination">
       <span>
-        Page {{ currentPage }} of {{ totalPages }} ·
+        Page {{ currentPage }} of {{ totalPages }} �
         {{ totalCount }} records
       </span>
 

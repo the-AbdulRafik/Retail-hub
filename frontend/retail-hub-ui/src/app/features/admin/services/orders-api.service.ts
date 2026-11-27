@@ -1,6 +1,8 @@
-﻿import { Injectable, inject } from '@angular/core';
+﻿
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../../core/config/api.config';
 
 export type OrderStatus =
   | 'Pending'
@@ -57,7 +59,9 @@ export interface UpdateOrderStatusRequest {
 })
 export class OrdersApiService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5266/api/orders';
+  private readonly apiBaseUrl = inject(API_BASE_URL);
+
+  private readonly apiUrl = `${this.apiBaseUrl}/orders`;
 
   getOrders(
     query: OrdersQueryParameters,

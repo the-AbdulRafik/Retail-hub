@@ -2,6 +2,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../../core/config/api.config';
 
 // Matches the backend BrandResponse DTO.
 export interface Brand {
@@ -29,8 +30,9 @@ export interface UpdateBrandRequest {
 })
 export class BrandApiService {
   private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
-  private readonly apiUrl = 'http://localhost:5266/api/brands';
+  private readonly apiUrl = `${this.apiBaseUrl}/brands`;
 
   // GET: Retrieve all brands.
   getBrands(includeInactive = false): Observable<Brand[]> {

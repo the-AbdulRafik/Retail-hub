@@ -1,6 +1,9 @@
-﻿import { Injectable, inject } from '@angular/core';
+import { PaginatedResponse } from '../../../core/models/pagination.models';
+
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../../core/config/api.config';
 
 export interface Product {
   id: number;
@@ -19,16 +22,6 @@ export interface Product {
   isActive: boolean;
   rowVersion: string;
   createdAt: string;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  currentPage: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
 }
 
 export interface ProductQueryParameters {
@@ -66,7 +59,9 @@ export interface UpdateProductRequest extends CreateProductRequest {
 })
 export class ProductApiService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5266/api/products';
+  private readonly apiBaseUrl = inject(API_BASE_URL);
+
+  private readonly apiUrl = `${this.apiBaseUrl}/products`;
 
   getProducts(
     query: ProductQueryParameters,

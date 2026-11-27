@@ -21,6 +21,7 @@ export class AdminBrands implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   protected searchTerm = '';
+  protected includeInactive = false;
   protected brands: Brand[] = [];
 
   protected isLoading = false;
@@ -35,7 +36,6 @@ export class AdminBrands implements OnInit {
   protected formDescription = '';
   protected formError = '';
 
-  // Write operations remain disabled until shared authentication is available.
   protected readonly canManageBrands = true;
 
   ngOnInit(): void {
@@ -61,7 +61,7 @@ export class AdminBrands implements OnInit {
     this.errorMessage = '';
 
     this.brandApi
-      .getBrands()
+      .getBrands(this.includeInactive)
       .pipe(
         finalize(() => {
           this.isLoading = false;
@@ -146,7 +146,7 @@ export class AdminBrands implements OnInit {
         ? this.brandApi.createBrand(request)
         : this.brandApi.updateBrand(this.editingBrandId, {
             ...request,
-            isActive: true,
+            isActive: this.brands.find((brand) => brand.id === this.editingBrandId)?.isActive ?? true,
           } satisfies UpdateBrandRequest);
 
     operation
@@ -170,11 +170,39 @@ export class AdminBrands implements OnInit {
         error: (error) => {
           console.error('Failed to save brand:', error);
           this.formError =
-            'Unable to save the brand. Please try again when Admin authentication is available.';
+            'Unable to save the brand. Please try again.';
         },
       });
   }
 
+  protected reactivateBrand(brand: Brand): void {
+    if (!this.canManageBrands || this.isSaving || brand.isActive) return;
+
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.brandApi
+      .updateBrand(brand.id, {
+        name: brand.name,
+        description: brand.description ?? null,
+        isActive: true,
+      })
+      .pipe(finalize(() => {
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: () => {
+          this.successMessage = `${brand.name} reactivated successfully.`;
+          this.loadBrands();
+        },
+        error: (error) => {
+          console.error('Failed to reactivate brand:', error);
+          this.errorMessage = 'Unable to reactivate the brand. Please try again.';
+        },
+      });
+  }
   protected deactivateBrand(brand: Brand): void {
     if (!this.canManageBrands || this.isSaving) return;
 
@@ -204,7 +232,7 @@ export class AdminBrands implements OnInit {
         error: (error) => {
           console.error('Failed to deactivate brand:', error);
           this.errorMessage =
-            'Unable to deactivate the brand. Admin authentication is required.';
+            'Unable to deactivate the brand. Please try again.';
         },
       });
   }

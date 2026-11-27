@@ -10,7 +10,6 @@
       type="button"
       (click)="openAddForm()"
       [disabled]="!canManageProducts"
-      title="Available when shared authentication is ready"
     >
       + Add Product
     </button>
@@ -59,7 +58,8 @@
       }
     </select>
 
-    <span class="result-count">
+    <label><input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="onFiltersChanged()" /> Include inactive</label>
+    <span>
       {{ totalCount }} products
     </span>
   </div>
@@ -316,14 +316,7 @@
                       Edit
                     </button>
 
-                    <button
-                      class="toggle-button"
-                      type="button"
-                      (click)="deactivateProduct(product)"
-                      [disabled]="!canManageProducts || !product.isActive"
-                    >
-                      Deactivate
-                    </button>
+                    @if (product.isActive) { <button class="toggle-button" type="button" [disabled]="!canManageProducts || isSaving" (click)="deactivateProduct(product)">Deactivate</button> } @else { <button class="toggle-button" type="button" [disabled]="!canManageProducts || isSaving" (click)="reactivateProduct(product)">Reactivate</button> }
                   </div>
                 </td>
               </tr>
@@ -376,8 +369,5 @@
     }
   </section>
 
-  <p class="demo-note">
-    Product data is loaded from the RetailHub backend. Write operations will
-    become available after shared authentication integration is ready.
-  </p>
+  <p class="demo-note">Product data is loaded from the RetailHub backend.</p>
 </section>

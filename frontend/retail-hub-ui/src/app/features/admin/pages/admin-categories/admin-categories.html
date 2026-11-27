@@ -1,4 +1,4 @@
-﻿<section class="categories-page">
+<section class="categories-page">
   <div class="page-heading">
     <div>
       <h2>Category Management</h2>
@@ -9,7 +9,6 @@
       class="primary-button"
       type="button"
       [disabled]="!canManageCategories"
-      title="Waiting for shared Admin authentication"
       (click)="openAddForm()"
     >
       + Add Category
@@ -36,7 +35,8 @@
       [(ngModel)]="searchTerm"
     />
 
-    <span class="result-count">
+    <label><input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="loadCategories()" /> Include inactive</label>
+    <span>
       {{ filteredCategories.length }} categories
     </span>
   </div>
@@ -100,7 +100,6 @@
             class="primary-button"
             type="submit"
             [disabled]="isSaving || !canManageCategories"
-            title="Waiting for shared Admin authentication"
           >
             {{ isSaving ? 'Saving...' : 'Save Category' }}
           </button>
@@ -147,7 +146,7 @@
                 <td class="category-name">{{ category.name }}</td>
 
                 <td class="description">
-                  {{ category.description || '—' }}
+                  {{ category.description || '�' }}
                 </td>
 
                 <td>
@@ -166,20 +165,11 @@
                       type="button"
                       [disabled]="!canManageCategories || isSaving"
                       (click)="openEditForm(category)"
-                      title="Waiting for shared Admin authentication"
                     >
                       Edit
                     </button>
 
-                    <button
-                      class="toggle-button"
-                      type="button"
-                      [disabled]="!canManageCategories || isSaving || !category.isActive"
-                      (click)="deactivateCategory(category)"
-                      title="Waiting for shared Admin authentication"
-                    >
-                      Deactivate
-                    </button>
+                    @if (category.isActive) { <button class="toggle-button" type="button" [disabled]="!canManageCategories || isSaving" (click)="deactivateCategory(category)">Deactivate</button> } @else { <button class="toggle-button" type="button" [disabled]="!canManageCategories || isSaving" (click)="reactivateCategory(category)">Reactivate</button> }
                   </div>
                 </td>
               </tr>
@@ -203,8 +193,5 @@
     </section>
   }
 
-  <p class="demo-note">
-    Connected to the RetailHub backend. Write operations will be enabled
-    when shared Admin authentication is integrated.
-  </p>
+  <p class="demo-note">Category data is loaded from the RetailHub backend.</p>
 </section>

@@ -1,4 +1,4 @@
-﻿
+
 <section class="brands-page">
   <div class="page-heading">
     <div>
@@ -10,7 +10,6 @@
       class="primary-button"
       type="button"
       [disabled]="!canManageBrands"
-      title="Waiting for shared Admin authentication"
       (click)="openCreateForm()"
     >
       + Add Brand
@@ -37,7 +36,8 @@
       [(ngModel)]="searchTerm"
     />
 
-    <span class="result-count">
+    <label><input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="loadBrands()" /> Include inactive</label>
+    <span>
       {{ filteredBrands.length }} brands
     </span>
   </div>
@@ -101,7 +101,6 @@
             class="primary-button"
             type="submit"
             [disabled]="isSaving || !canManageBrands"
-            title="Waiting for shared Admin authentication"
           >
             {{ isSaving ? 'Saving...' : 'Save Brand' }}
           </button>
@@ -148,7 +147,7 @@
                 <td class="brand-name">{{ brand.name }}</td>
 
                 <td class="description">
-                  {{ brand.description || '—' }}
+                  {{ brand.description || '�' }}
                 </td>
 
                 <td>
@@ -167,20 +166,11 @@
                       type="button"
                       [disabled]="!canManageBrands || isSaving"
                       (click)="openEditForm(brand)"
-                      title="Waiting for shared Admin authentication"
                     >
                       Edit
                     </button>
 
-                    <button
-                      class="toggle-button"
-                      type="button"
-                      [disabled]="!canManageBrands || isSaving || !brand.isActive"
-                      (click)="deactivateBrand(brand)"
-                      title="Waiting for shared Admin authentication"
-                    >
-                      Deactivate
-                    </button>
+                    @if (brand.isActive) { <button class="toggle-button" type="button" [disabled]="!canManageBrands || isSaving" (click)="deactivateBrand(brand)">Deactivate</button> } @else { <button class="toggle-button" type="button" [disabled]="!canManageBrands || isSaving" (click)="reactivateBrand(brand)">Reactivate</button> }
                   </div>
                 </td>
               </tr>
@@ -204,8 +194,5 @@
     </section>
   }
 
-  <p class="demo-note">
-    Connected to the RetailHub backend. Write operations will be enabled
-    when shared Admin authentication is integrated.
-  </p>
+  <p class="demo-note">Brand data is loaded from the RetailHub backend.</p>
 </section>

@@ -1,6 +1,8 @@
-﻿import { Injectable, inject } from '@angular/core';
+﻿
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../../core/config/api.config';
 
 export interface Category {
   id: number;
@@ -25,8 +27,9 @@ export interface UpdateCategoryRequest {
 })
 export class CategoryApiService {
   private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
-  private readonly apiUrl = 'http://localhost:5266/api/categories';
+  private readonly apiUrl = `${this.apiBaseUrl}/categories`;
 
   getCategories(includeInactive = false): Observable<Category[]> {
     return this.http.get<Category[]>(this.apiUrl, {

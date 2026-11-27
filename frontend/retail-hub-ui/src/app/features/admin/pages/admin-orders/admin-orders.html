@@ -1,4 +1,4 @@
-ï»¿<section class="orders-page">
+<section class="orders-page">
   <div class="page-heading">
     <div>
       <h2>Orders Management</h2>
@@ -86,7 +86,6 @@
                     type="button"
                     (click)="openUpdateForm(order)"
                     [disabled]="!canManageOrders || getAllowedStatuses(order.status).length === 0"
-                    title="Waiting for shared authentication"
                   >
                     Update Status
                   </button>
@@ -100,7 +99,7 @@
 
     <div class="pagination">
       <span>
-        Page {{ currentPage }} of {{ totalPages }} Â·
+        Page {{ currentPage }} of {{ totalPages }} ·
         {{ totalCount }} orders
       </span>
 
@@ -130,7 +129,7 @@
         <div>
           <h3>Update Order Status</h3>
           <p>
-            {{ selectedOrder.orderNumber }} Â·
+            {{ selectedOrder.orderNumber }} ·
             {{ selectedOrder.customerName }}
           </p>
         </div>
@@ -141,7 +140,7 @@
           (click)="closeForm()"
           aria-label="Close form"
         >
-          Ã—
+          ×
         </button>
       </div>
 

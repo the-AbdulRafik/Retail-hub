@@ -1,6 +1,8 @@
-﻿import { Injectable, inject } from '@angular/core';
+﻿
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../../../core/config/api.config';
 
 export interface InventoryItem {
   productId: number;
@@ -44,7 +46,9 @@ export interface InventoryPaginatedResponse {
 })
 export class InventoryApiService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:5266/api/inventory';
+  private readonly apiBaseUrl = inject(API_BASE_URL);
+
+  private readonly apiUrl = `${this.apiBaseUrl}/inventory`;
 
   getInventory(
     query: InventoryQueryParameters,

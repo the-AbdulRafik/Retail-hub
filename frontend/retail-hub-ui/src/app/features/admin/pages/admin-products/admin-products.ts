@@ -1,6 +1,21 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+
+import {
+  ChangeDetectorRef,
+  DestroyRef,
+  Component,
+  OnInit,
+  inject,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import {
+  Subject,
+  debounceTime,
+  finalize,
+  switchMap,
+  catchError,
+  of,
+} from 'rxjs';
 
 import {
   Product,
@@ -20,11 +35,14 @@ import { Category, CategoryApiService } from '../../services/category-api.servic
 })
 export class AdminProducts implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly productApi = inject(ProductApiService);
   private readonly brandApi = inject(BrandApiService);
   private readonly categoryApi = inject(CategoryApiService);
 
-  // Write operations stay disabled until shared authentication is ready.
+  private readonly filterChanges$ = new Subject<void>();
+
+  // Write operations are enabled with shared authentication integration.
   protected readonly canManageProducts = true;
 
   protected products: Product[] = [];
@@ -34,6 +52,7 @@ export class AdminProducts implements OnInit {
   protected searchTerm = '';
   protected selectedCategory = '';
   protected selectedBrand = '';
+  protected includeInactive = false;
 
   protected currentPage = 1;
   protected pageSize = 10;
@@ -69,55 +88,78 @@ export class AdminProducts implements OnInit {
   };
 
   ngOnInit(): void {
-    this.loadProducts();
+    this.setupProductSearch();
+    this.onFiltersChanged();
     this.loadDropdownData();
   }
 
-  protected loadProducts(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    this.productApi
-      .getProducts({
-        page: this.currentPage,
-        pageSize: this.pageSize,
-        search: this.searchTerm.trim() || undefined,
-        categoryId: this.selectedCategory
-          ? Number(this.selectedCategory)
-          : undefined,
-        brandId: this.selectedBrand
-          ? Number(this.selectedBrand)
-          : undefined,
-        sortBy: 'name',
-        sortOrder: 'asc',
-      })
-      .pipe(finalize(() => {
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      }))
-      .subscribe({
-        next: (response) => {
-
-          this.products = response.items;
-          this.currentPage = response.currentPage;
-          this.pageSize = response.pageSize;
-          this.totalCount = response.totalCount;
-          this.totalPages = response.totalPages;
-          this.hasPreviousPage = response.hasPreviousPage;
-          this.hasNextPage = response.hasNextPage;
+  private setupProductSearch(): void {
+    this.filterChanges$
+      .pipe(
+        debounceTime(350),
+        switchMap(() => {
+          this.isLoading = true;
+          this.errorMessage = '';
           this.cdr.markForCheck();
-        },
-        error: (error) => {
-          console.error('Unable to load products:', error);
-          this.errorMessage =
-            error.error?.detail ||
-            error.error?.title ||
-            'Unable to load products. Please try again.';
-          this.products = [];
-          this.totalCount = 0;
-          this.totalPages = 0;
-        },
+
+          return this.productApi
+            .getProducts({
+              page: this.currentPage,
+              pageSize: this.pageSize,
+              search: this.searchTerm.trim() || undefined,
+              categoryId: this.selectedCategory
+                ? Number(this.selectedCategory)
+                : undefined,
+              brandId: this.selectedBrand
+                ? Number(this.selectedBrand)
+                : undefined,
+              includeInactive: this.includeInactive,sortBy: 'name',
+              sortOrder: 'asc',
+            })
+            .pipe(
+              catchError((error) => {
+                console.error('Unable to load products:', error);
+
+                this.errorMessage =
+                  error.error?.detail ||
+                  error.error?.title ||
+                  'Unable to load products. Please try again.';
+
+                this.products = [];
+                this.totalCount = 0;
+                this.totalPages = 0;
+                this.hasPreviousPage = false;
+                this.hasNextPage = false;
+
+                return of(null);
+              }),
+              finalize(() => {
+                this.isLoading = false;
+                this.cdr.markForCheck();
+              }),
+            );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+
+        this.products = [...response.items];
+        this.currentPage = response.currentPage;
+        this.pageSize = response.pageSize;
+        this.totalCount = response.totalCount;
+        this.totalPages = response.totalPages;
+        this.hasPreviousPage = response.hasPreviousPage;
+        this.hasNextPage = response.hasNextPage;
+
+        this.cdr.markForCheck();
       });
+  }
+
+  protected loadProducts(): void {
+    this.filterChanges$.next();
   }
 
   protected loadDropdownData(): void {
@@ -334,6 +376,50 @@ export class AdminProducts implements OnInit {
       });
   }
 
+  protected reactivateProduct(product: Product): void {
+    if (!this.canManageProducts || this.isSaving || product.isActive) {
+      return;
+    }
+
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const request: UpdateProductRequest = {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      brandId: product.brandId,
+      categoryId: product.categoryId,
+      packagingType: product.packagingType,
+      packagingSize: product.packagingSize,
+      stockQuantity: product.stockQuantity,
+      reorderLevel: product.reorderLevel,
+      isActive: true,
+      rowVersion: product.rowVersion,
+    };
+
+    this.productApi
+      .updateProduct(product.id, request)
+      .pipe(finalize(() => {
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      }))
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Product reactivated successfully.';
+          this.loadProducts();
+        },
+        error: (error) => {
+          console.error('Unable to reactivate product:', error);
+          this.errorMessage =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to reactivate product. Please try again.';
+        },
+      });
+  }
   protected deactivateProduct(product: Product): void {
     if (!this.canManageProducts) {
       return;
