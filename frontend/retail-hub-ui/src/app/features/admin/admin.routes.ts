@@ -22,6 +22,13 @@ export const ADMIN_ROUTES: Routes = [
             (m) => m.AdminBrands,
           ),
       },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./pages/admin-categories/admin-categories').then(
+            (m) => m.AdminCategories,
+          ),
+      },
     ],
   },
 ];

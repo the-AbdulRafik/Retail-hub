@@ -1,0 +1,154 @@
+<section class="categories-page">
+  <div class="page-heading">
+    <div>
+      <h2>Category Management</h2>
+      <p>Organize and manage your store product categories.</p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="openAddForm()">
+      + Add Category
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search categories..."
+      aria-label="Search categories"
+      [(ngModel)]="searchTerm"
+    />
+
+    <span class="result-count">
+      {{ filteredCategories.length }} categories
+    </span>
+  </div>
+
+  @if (showForm) {
+    <section class="form-panel">
+      <div class="form-heading">
+        <h3>{{ isEditing ? 'Edit Category' : 'Add New Category' }}</h3>
+
+        <button
+          class="close-button"
+          type="button"
+          (click)="closeForm()"
+          aria-label="Close form"
+        >
+          ×
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveCategory()">
+        <div class="form-fields">
+          <label>
+            Category Name
+            <input
+              type="text"
+              name="name"
+              [(ngModel)]="formData.name"
+              placeholder="Enter category name"
+              required
+              maxlength="100"
+            />
+          </label>
+
+          <label>
+            Description
+            <textarea
+              name="description"
+              [(ngModel)]="formData.description"
+              placeholder="Enter category description"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            (click)="closeForm()"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="primary-button"
+            type="submit"
+            [disabled]="!formData.name.trim()"
+          >
+            {{ isEditing ? 'Save Changes' : 'Create Category' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="table-panel">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Category Name</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (category of filteredCategories; track category.id) {
+            <tr>
+              <td class="category-name">{{ category.name }}</td>
+
+              <td class="description">
+                {{ category.description || '—' }}
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class.inactive]="!category.isActive"
+                >
+                  {{ category.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+
+              <td>
+                <div class="action-buttons">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="openEditForm(category)"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="toggle-button"
+                    type="button"
+                    (click)="toggleCategoryStatus(category)"
+                  >
+                    {{ category.isActive ? 'Deactivate' : 'Activate' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="empty-state">
+                <strong>No categories found</strong>
+                <span>Try another search or add a new category.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="demo-note">
+    Demo mode: Changes are temporary and are not saved to the backend.
+  </p>
+</section>
