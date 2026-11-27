@@ -9,4 +9,17 @@ public interface IOrderRepository
         string userId,
         IReadOnlyList<(int ProductId, int Quantity)> items,
         CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<Order> Items, int TotalCount)> GetPagedAsync(
+        OrderQueryParameters queryParameters,
+        string? restrictToUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<Order?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<Order> UpdateStatusTransactionAsync(
+        int orderId,
+        OrderStatus newStatus,
+        Func<OrderStatus, OrderStatus, bool> isValidTransition,
+        CancellationToken cancellationToken = default);
 }
