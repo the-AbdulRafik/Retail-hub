@@ -19,7 +19,7 @@ export class AdminInventory implements OnInit {
   private readonly inventoryApi = inject(InventoryApiService);
 
   // Enable only after the shared Admin authentication is integrated.
-  protected readonly canManageInventory = false;
+  protected readonly canManageInventory = true;
 
   protected inventory: InventoryItem[] = [];
 

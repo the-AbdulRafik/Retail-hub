@@ -25,7 +25,7 @@ export class AdminProducts implements OnInit {
   private readonly categoryApi = inject(CategoryApiService);
 
   // Write operations stay disabled until shared authentication is ready.
-  protected readonly canManageProducts = false;
+  protected readonly canManageProducts = true;
 
   protected products: Product[] = [];
   protected brands: Brand[] = [];

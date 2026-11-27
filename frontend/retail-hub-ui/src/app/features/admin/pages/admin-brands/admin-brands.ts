@@ -36,7 +36,7 @@ export class AdminBrands implements OnInit {
   protected formError = '';
 
   // Write operations remain disabled until shared authentication is available.
-  protected readonly canManageBrands = false;
+  protected readonly canManageBrands = true;
 
   ngOnInit(): void {
     this.loadBrands();

@@ -1,4 +1,4 @@
-﻿import {
+import {
   ChangeDetectorRef,
   Component,
   OnInit,
@@ -44,7 +44,7 @@ export class AdminCategories implements OnInit {
   };
 
   // Enable only after shared Admin authentication is integrated.
-  protected readonly canManageCategories = false;
+  protected readonly canManageCategories = true;
 
   ngOnInit(): void {
     this.loadCategories();

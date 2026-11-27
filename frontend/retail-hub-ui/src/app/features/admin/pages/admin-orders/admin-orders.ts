@@ -19,7 +19,7 @@ export class AdminOrders implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly ordersApi = inject(OrdersApiService);
 
-  protected readonly canManageOrders = false;
+  protected readonly canManageOrders = true;
 
   protected orders: Order[] = [];
 
