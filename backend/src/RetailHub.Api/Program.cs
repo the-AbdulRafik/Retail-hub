@@ -13,6 +13,7 @@ using RetailHub.Api.Repositories.Interfaces;
 using RetailHub.Api.Services.Auth;
 using RetailHub.Api.Services.Catalog;
 using RetailHub.Api.Services.Interfaces;
+using RetailHub.Api.Services.Inventory;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -138,6 +139,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi("v1", options =>

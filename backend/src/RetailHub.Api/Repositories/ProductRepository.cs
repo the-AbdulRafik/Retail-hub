@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RetailHub.Api.Common;
 using RetailHub.Api.Data;
 using RetailHub.Api.DTOs.Catalog;
+using RetailHub.Api.DTOs.Inventory;
 using RetailHub.Api.Entities;
 using RetailHub.Api.Repositories.Interfaces;
 
@@ -85,6 +86,43 @@ public sealed class ProductRepository(ApplicationDbContext dbContext) : IProduct
         };
 
         var items = await orderedQuery
+            .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
+            .Take(queryParameters.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public async Task<(IReadOnlyList<Product> Items, int TotalCount)> GetInventoryPagedAsync(
+        InventoryQueryParameters queryParameters,
+        CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Products
+            .AsNoTracking()
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .AsQueryable();
+
+        if (queryParameters.LowStockOnly)
+        {
+            query = query.Where(p => p.StockQuantity <= p.ReorderLevel);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.Search))
+        {
+            var term = queryParameters.Search.Trim();
+            query = query.Where(p =>
+                p.Name.Contains(term) ||
+                p.Brand.Name.Contains(term) ||
+                p.Category.Name.Contains(term));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderBy(p => p.StockQuantity)
+            .ThenBy(p => p.Name)
+            .ThenBy(p => p.Id)
             .Skip((queryParameters.Page - 1) * queryParameters.PageSize)
             .Take(queryParameters.PageSize)
             .ToListAsync(cancellationToken);
