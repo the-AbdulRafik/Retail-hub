@@ -1,0 +1,78 @@
+<main class="cart-page">
+  @let cartState = state();
+  <a routerLink="/customer" class="continue-link">← Continue shopping</a>
+  <h1>Shopping Cart</h1>
+
+  @switch (cartState.status) {
+    @case ('unavailable') {
+      <section class="state-card" aria-labelledby="cart-unavailable-title">
+        <h2 id="cart-unavailable-title">Cart isn't connected yet</h2>
+        <p>The shared cart service is not available, so cart contents and changes cannot be loaded.</p>
+        <a routerLink="/customer" class="primary-link">Browse products</a>
+      </section>
+    }
+    @case ('loading') {
+      <section class="state-card" role="status">Loading your cart…</section>
+    }
+    @case ('error') {
+      <section class="state-card error-state" role="alert">
+        <h2>Unable to load your cart</h2>
+        <p>{{ cartState.message }}</p>
+      </section>
+    }
+    @case ('empty') {
+      <section class="state-card">
+        <h2>Your cart is empty</h2>
+        <p>Explore the catalog and add products to get started.</p>
+        <a routerLink="/customer" class="primary-link">Browse products</a>
+      </section>
+    }
+    @case ('ready') {
+      <div class="cart-layout">
+        <section class="cart-items" aria-label="Cart items">
+          @for (item of cartState.items; track item.productId) {
+            <article class="cart-item">
+              @if (item.imageUrl) {
+                <img [src]="item.imageUrl" [alt]="item.name" />
+              } @else {
+                <div class="image-placeholder" aria-label="No product image">No image</div>
+              }
+
+              <div class="item-info">
+                <h2>{{ item.name }}</h2>
+                <p>Unit price: {{ item.unitPrice | number:'1.2-2' }}</p>
+                <label [for]="'quantity-' + item.productId">Quantity</label>
+                <input
+                  [id]="'quantity-' + item.productId"
+                  type="number"
+                  min="1"
+                  [max]="item.availableStock"
+                  [value]="item.quantity"
+                  (change)="changeQuantity(item, $event)"
+                />
+                <button type="button" class="remove-button" (click)="removeItem.emit(item.productId)">
+                  Remove
+                </button>
+              </div>
+
+              <strong class="line-total">{{ item.unitPrice * item.quantity | number:'1.2-2' }}</strong>
+            </article>
+          } @empty {
+            <div class="state-card">
+              <h2>Your cart is empty</h2>
+              <a routerLink="/customer" class="primary-link">Browse products</a>
+            </div>
+          }
+        </section>
+
+        <aside class="summary">
+          <h2>Order summary</h2>
+          <div class="summary-row"><span>Subtotal</span><strong>{{ subtotal() | number:'1.2-2' }}</strong></div>
+          <div class="summary-row total"><span>Total</span><strong>{{ subtotal() | number:'1.2-2' }}</strong></div>
+          <p>Discounts and delivery charges are not specified by the cart contract.</p>
+          <button type="button" disabled>Proceed to checkout</button>
+        </aside>
+      </div>
+    }
+  }
+</main>

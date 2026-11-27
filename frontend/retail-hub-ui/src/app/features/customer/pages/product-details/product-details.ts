@@ -49,7 +49,7 @@ export class ProductDetails {
   addToCart(): void {
     const product = this.product();
     if (!product || product.stockQuantity < 1) return;
-    this.message.set('Cart integration is pending the shared CartService.');
+    this.message.set('Unable to add this product: the shared cart service is not available yet.');
   }
 
   private loadProduct(id: number): void {
