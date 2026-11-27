@@ -1,0 +1,165 @@
+
+<section class="inventory-page">
+  <div class="page-heading">
+    <div>
+      <h2>Inventory Management</h2>
+      <p>Monitor stock levels and update product inventory.</p>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <article class="summary-card">
+      <span>Total Products</span>
+      <strong>{{ totalProducts }}</strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Low Stock</span>
+      <strong class="warning-value">{{ lowStockCount }}</strong>
+    </article>
+
+    <article class="summary-card">
+      <span>Out of Stock</span>
+      <strong class="danger-value">{{ outOfStockCount }}</strong>
+    </article>
+  </div>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search products..."
+      aria-label="Search inventory"
+      [(ngModel)]="searchTerm"
+    />
+
+    <select
+      aria-label="Filter by stock status"
+      [(ngModel)]="selectedStockStatus"
+    >
+      <option value="">All Stock Status</option>
+      <option value="In Stock">In Stock</option>
+      <option value="Low Stock">Low Stock</option>
+      <option value="Out of Stock">Out of Stock</option>
+    </select>
+
+    <span class="result-count">
+      {{ filteredInventory.length }} products
+    </span>
+  </div>
+
+  @if (showForm && selectedItem) {
+    <section class="form-panel">
+      <div class="form-heading">
+        <div>
+          <h3>Update Stock</h3>
+          <p>{{ selectedItem.productName }}</p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          (click)="closeForm()"
+          aria-label="Close form"
+        >
+          ×
+        </button>
+      </div>
+
+      <form (ngSubmit)="updateStock()">
+        <label class="stock-input-label">
+          Available Quantity
+          <input
+            type="number"
+            name="updatedQuantity"
+            [(ngModel)]="updatedQuantity"
+            min="0"
+            step="1"
+            required
+          />
+        </label>
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            (click)="closeForm()"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="primary-button"
+            type="submit"
+            [disabled]="!isValidQuantity(updatedQuantity)"
+          >
+            Update Stock
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="table-panel">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Brand</th>
+            <th>Category</th>
+            <th>Available Stock</th>
+            <th>Reorder Level</th>
+            <th>Stock Status</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (item of filteredInventory; track item.productId) {
+            <tr>
+              <td class="product-name">{{ item.productName }}</td>
+              <td>{{ item.brand }}</td>
+              <td>{{ item.category }}</td>
+              <td class="quantity">{{ item.stockQuantity }}</td>
+              <td>{{ item.reorderLevel }}</td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class.low-stock]="getStockStatus(item) === 'Low Stock'"
+                  [class.out-of-stock]="getStockStatus(item) === 'Out of Stock'"
+                >
+                  {{ getStockStatus(item) }}
+                </span>
+              </td>
+
+              <td>{{ item.lastUpdated }}</td>
+
+              <td>
+                <button
+                  class="edit-button"
+                  type="button"
+                  (click)="openUpdateForm(item)"
+                >
+                  Update Stock
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty-state">
+                <strong>No inventory items found</strong>
+                <span>Try changing your search or stock status filter.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="demo-note">
+    Demo mode: Stock updates are temporary and are not saved to the backend.
+  </p>
+</section>

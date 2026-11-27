@@ -37,6 +37,20 @@ export const ADMIN_ROUTES: Routes = [
             (m) => m.AdminProducts,
           ),
       },
+      {
+        path: 'inventory',
+        loadComponent: () =>
+          import('./pages/admin-inventory/admin-inventory').then(
+            (m) => m.AdminInventory,
+          ),
+      },
+      {
+  path: 'orders',
+  loadComponent: () =>
+    import('./pages/admin-orders/admin-orders').then(
+      (m) => m.AdminOrders,
+    ),
+},
     ],
   },
 ];
