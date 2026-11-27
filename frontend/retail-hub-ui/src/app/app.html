@@ -1,11 +1,25 @@
 <header class="app-header">
   <div class="app-header__inner">
     <a class="app-brand" routerLink="/customer">{{ title() }}</a>
+
     <nav class="app-nav" aria-label="Main navigation">
       <a routerLink="/customer" routerLinkActive="is-active">Customer Portal</a>
-      <a routerLink="/admin" routerLinkActive="is-active">Admin Portal</a>
-      <a routerLink="/login" routerLinkActive="is-active">Login</a>
-      <a routerLink="/register" routerLinkActive="is-active">Register</a>
+
+      @if (authService.isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="is-active">Admin Portal</a>
+      }
+
+      @if (authService.isAuthenticated()) {
+        <span class="app-user-pill">
+          {{ authService.currentUser()?.displayName }}
+        </span>
+        <button class="app-logout-btn" type="button" (click)="onLogout()">
+          Logout
+        </button>
+      } @else {
+        <a routerLink="/login" routerLinkActive="is-active">Login</a>
+        <a routerLink="/register" routerLinkActive="is-active">Register</a>
+      }
     </nav>
   </div>
 </header>
