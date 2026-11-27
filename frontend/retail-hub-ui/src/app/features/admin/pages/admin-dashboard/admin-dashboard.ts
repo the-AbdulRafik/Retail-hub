@@ -1,3 +1,4 @@
+
 import { CurrencyPipe } from '@angular/common';
 import { Component } from '@angular/core';
 
@@ -11,10 +12,34 @@ export class AdminDashboard {
   protected readonly isDemoData = true;
 
   protected readonly stats = [
-    { label: 'Total Orders', value: '1,284', change: '+12.5%', icon: '?', tone: 'orange' },
-    { label: 'Total Revenue', value: '?4,82,500', change: '+8.2%', icon: '?', tone: 'green' },
-    { label: 'Pending Orders', value: '36', change: 'Needs attention', icon: '?', tone: 'blue' },
-    { label: 'Low Stock Items', value: '12', change: 'Restock required', icon: '?', tone: 'red' },
+    {
+      label: 'Total Orders',
+      value: '1,284',
+      change: '+12.5%',
+      icon: 'ORD',
+      tone: 'orange',
+    },
+    {
+      label: 'Total Revenue',
+      value: 'INR 4,82,500',
+      change: '+8.2%',
+      icon: 'REV',
+      tone: 'green',
+    },
+    {
+      label: 'Pending Orders',
+      value: '36',
+      change: 'Needs attention',
+      icon: 'PEN',
+      tone: 'blue',
+    },
+    {
+      label: 'Low Stock Items',
+      value: '12',
+      change: 'Restock required',
+      icon: 'STK',
+      tone: 'red',
+    },
   ];
 
   protected readonly recentOrders = [
