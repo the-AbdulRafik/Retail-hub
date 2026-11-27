@@ -1,0 +1,15 @@
+<header class="app-header">
+  <div class="app-header__inner">
+    <a class="app-brand" routerLink="/customer">{{ title() }}</a>
+    <nav class="app-nav" aria-label="Main navigation">
+      <a routerLink="/customer" routerLinkActive="is-active">Customer Portal</a>
+      <a routerLink="/admin" routerLinkActive="is-active">Admin Portal</a>
+      <a routerLink="/login" routerLinkActive="is-active">Login</a>
+      <a routerLink="/register" routerLinkActive="is-active">Register</a>
+    </nav>
+  </div>
+</header>
+
+<main class="app-main">
+  <router-outlet />
+</main>
