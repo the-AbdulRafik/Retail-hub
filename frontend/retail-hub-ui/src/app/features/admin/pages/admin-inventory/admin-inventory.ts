@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 
@@ -15,6 +15,7 @@ import {
   styleUrl: './admin-inventory.css',
 })
 export class AdminInventory implements OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly inventoryApi = inject(InventoryApiService);
 
   // Enable only after the shared Admin authentication is integrated.
@@ -60,7 +61,10 @@ export class AdminInventory implements OnInit {
         search: this.searchTerm.trim() || undefined,
         lowStockOnly: this.lowStockOnly,
       })
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: (response) => {
           this.inventory = response.items;
@@ -70,6 +74,7 @@ export class AdminInventory implements OnInit {
           this.totalPages = response.totalPages;
           this.hasPreviousPage = response.hasPreviousPage;
           this.hasNextPage = response.hasNextPage;
+          this.cdr.markForCheck();
         },
         error: (error) => {
           console.error('Unable to load inventory:', error);
@@ -82,6 +87,7 @@ export class AdminInventory implements OnInit {
           this.inventory = [];
           this.totalCount = 0;
           this.totalPages = 0;
+          this.cdr.markForCheck();
         },
       });
   }
@@ -173,10 +179,14 @@ export class AdminInventory implements OnInit {
 
     this.inventoryApi
       .updateInventory(this.selectedItem.productId, request)
-      .pipe(finalize(() => (this.isSaving = false)))
+      .pipe(finalize(() => {
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: () => {
           this.successMessage = 'Inventory updated successfully.';
+          this.cdr.markForCheck();
           this.closeForm();
           this.loadInventory();
         },
@@ -189,6 +199,7 @@ export class AdminInventory implements OnInit {
             (error.status === 409
               ? 'Inventory changed elsewhere. Reload and try again.'
               : 'Unable to update inventory.');
+          this.cdr.markForCheck();
         },
       });
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe } from '@angular/common';
 import { finalize } from 'rxjs';
@@ -16,6 +16,7 @@ import {
   styleUrl: './admin-orders.css',
 })
 export class AdminOrders implements OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly ordersApi = inject(OrdersApiService);
 
   protected readonly canManageOrders = false;
@@ -76,7 +77,10 @@ export class AdminOrders implements OnInit {
         search: this.searchTerm.trim() || undefined,
         status: this.selectedStatus || undefined,
       })
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: (response) => {
           this.orders = response.items;
@@ -86,6 +90,7 @@ export class AdminOrders implements OnInit {
           this.totalPages = response.totalPages;
           this.hasPreviousPage = response.hasPreviousPage;
           this.hasNextPage = response.hasNextPage;
+          this.cdr.markForCheck();
         },
         error: (error) => {
           console.error('Unable to load orders:', error);
@@ -98,6 +103,7 @@ export class AdminOrders implements OnInit {
           this.orders = [];
           this.totalCount = 0;
           this.totalPages = 0;
+          this.cdr.markForCheck();
         },
       });
   }
@@ -166,10 +172,14 @@ export class AdminOrders implements OnInit {
       .updateOrderStatus(this.selectedOrder.id, {
         status: this.updatedStatus,
       })
-      .pipe(finalize(() => (this.isSaving = false)))
+      .pipe(finalize(() => {
+        this.isSaving = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: () => {
           this.successMessage = 'Order status updated successfully.';
+          this.cdr.markForCheck();
           this.closeForm();
           this.loadOrders();
         },
@@ -180,6 +190,7 @@ export class AdminOrders implements OnInit {
             error.error?.detail ||
             error.error?.title ||
             'Unable to update order status.';
+          this.cdr.markForCheck();
         },
       });
   }
