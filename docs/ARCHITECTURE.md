@@ -26,13 +26,14 @@ RetailHub is structured for a **3-hour hackathon** with a **3-person team**:
 
 ## 3. Backend Structure (`backend/src/RetailHub.Api`)
 
-- `Controllers/`: Thin HTTP endpoints handling route binding, `[Authorize]` attributes, and status codes.
-- `Services/`: Business logic organized by domain (`Auth`, `Catalog`, `Inventory`, `Orders`) behind interfaces in `Services/Interfaces/`. Services interact directly with `ApplicationDbContext` (no redundant generic repository layer).
+- `Controllers/`: Thin HTTP endpoints handling route binding, `[Authorize]` attributes, and status codes. Never run direct EF Core queries.
+- `Services/`: Business logic organized by domain (`Auth`, `Catalog`, `Inventory`, `Orders`) behind interfaces in `Services/Interfaces/`. Enforces business rules, order totals, ownership, and status transitions.
+- `Repositories/`: Feature-specific data access (`ProductRepository`, `CategoryRepository`, `BrandRepository`, `OrderRepository`) behind `Repositories/Interfaces/` using EF Core (`AsNoTracking`, pagination, transactions, `ExecuteUpdateAsync`).
 - `Entities/`: EF Core domain entities (`ApplicationUser`, `Brand`, `Category`, `Product`, `Order`, `OrderItem`, `OrderStatus`).
-- `Configurations/`: Fluent API `IEntityTypeConfiguration<T>` classes for constraints, precision, indexes, and relationships.
-- `Data/`: `ApplicationDbContext : IdentityDbContext<ApplicationUser>` and migrations.
-- `DTOs/`: Request/response contracts and pagination primitives (`PaginationQuery`, `PagedResponse<T>`).
-- `Middleware/`: Global exception handling converting unhandled errors and concurrency conflicts into consistent `ProblemDetails` JSON responses.
+- `Configurations/`: Fluent API `IEntityTypeConfiguration<T>` classes and strongly typed options (`JwtOptions`, `SeedAdminOptions`).
+- `Data/`: `ApplicationDbContext : IdentityDbContext<ApplicationUser>`, `IdentitySeeder`, and migrations.
+- `DTOs/`: Request/response contracts and pagination primitives (`PaginationQuery`, `PaginatedResponse<T>`).
+- `Common/` & `Middleware/`: Domain exception types and `ExceptionHandlingMiddleware` converting failures into consistent `ProblemDetails` JSON responses.
 
 ## 4. Frontend Structure (`frontend/retail-hub-ui/src/app`)
 
@@ -49,6 +50,6 @@ RetailHub is structured for a **3-hour hackathon** with a **3-person team**:
 ## 5. Security & Secrets
 
 - **Roles**: `Customer` and `Admin` seeded in Identity.
-- **JWT**: Symmetric HMAC-SHA256 signing key supplied via `dotnet user-secrets` in development or environment variables in deployment. Never committed to Git.
-- **Passwords**: Enforced by ASP.NET Core Identity password policy (minimum 8 characters, upper, lower, digit).
+- **JWT**: Symmetric HMAC-SHA256 signing key and issuer/audience/expiry (`Jwt:Key`, `Jwt:Issuer`, `Jwt:Audience`, `Jwt:ExpiresInMinutes`) supplied via `dotnet user-secrets` in development or environment variables in deployment. Never committed to Git.
+- **Passwords**: Enforced by ASP.NET Core Identity password policy (minimum 8 characters, at least 1 digit).
 - **Order Integrity**: `POST /api/orders` ignores any client-submitted prices or totals and computes all amounts from the `Products` table inside a transaction.
