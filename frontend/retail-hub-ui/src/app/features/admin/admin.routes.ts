@@ -1,3 +1,4 @@
+
 import { Routes } from '@angular/router';
 
 export const ADMIN_ROUTES: Routes = [
@@ -27,6 +28,13 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () =>
           import('./pages/admin-categories/admin-categories').then(
             (m) => m.AdminCategories,
+          ),
+      },
+      {
+        path: 'products',
+        loadComponent: () =>
+          import('./pages/admin-products/admin-products').then(
+            (m) => m.AdminProducts,
           ),
       },
     ],

@@ -1,0 +1,298 @@
+
+<section class="products-page">
+  <div class="page-heading">
+    <div>
+      <h2>Product Management</h2>
+      <p>Manage your store products, pricing, categories and stock.</p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="openAddForm()">
+      + Add Product
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search products..."
+      aria-label="Search products"
+      [(ngModel)]="searchTerm"
+    />
+
+    <select aria-label="Filter by category" [(ngModel)]="selectedCategory">
+      <option value="">All Categories</option>
+      @for (category of categories; track category.id) {
+        <option [value]="category.id">{{ category.name }}</option>
+      }
+    </select>
+
+    <select aria-label="Filter by brand" [(ngModel)]="selectedBrand">
+      <option value="">All Brands</option>
+      @for (brand of brands; track brand.id) {
+        <option [value]="brand.id">{{ brand.name }}</option>
+      }
+    </select>
+
+    <span class="result-count">
+      {{ filteredProducts.length }} products
+    </span>
+  </div>
+
+  @if (showForm) {
+    <section class="form-panel">
+      <div class="form-heading">
+        <h3>{{ isEditing ? 'Edit Product' : 'Add New Product' }}</h3>
+
+        <button
+          class="close-button"
+          type="button"
+          (click)="closeForm()"
+          aria-label="Close form"
+        >
+          ×
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveProduct()">
+        <div class="form-fields">
+          <label>
+            Product Name *
+            <input
+              type="text"
+              name="name"
+              [(ngModel)]="formData.name"
+              placeholder="Enter product name"
+              required
+              maxlength="150"
+            />
+          </label>
+
+          <label>
+            Description
+            <textarea
+              name="description"
+              [(ngModel)]="formData.description"
+              placeholder="Enter product description"
+              rows="3"
+              maxlength="1000"
+            ></textarea>
+          </label>
+
+          <label>
+            Price (₹) *
+            <input
+              type="number"
+              name="price"
+              [(ngModel)]="formData.price"
+              placeholder="Enter price"
+              min="0.01"
+              step="0.01"
+              required
+            />
+          </label>
+
+          <label>
+            Image URL
+            <input
+              type="url"
+              name="imageUrl"
+              [(ngModel)]="formData.imageUrl"
+              placeholder="https://example.com/image.jpg"
+            />
+          </label>
+
+          <label>
+            Brand *
+            <select name="brandId" [(ngModel)]="formData.brandId" required>
+              <option value="">Select Brand</option>
+              @for (brand of brands; track brand.id) {
+                <option [value]="brand.id">{{ brand.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label>
+            Category *
+            <select
+              name="categoryId"
+              [(ngModel)]="formData.categoryId"
+              required
+            >
+              <option value="">Select Category</option>
+              @for (category of categories; track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label>
+            Packaging Type *
+            <input
+              type="text"
+              name="packagingType"
+              [(ngModel)]="formData.packagingType"
+              placeholder="e.g. Bottle, Pouch, Packet"
+              required
+              maxlength="50"
+            />
+          </label>
+
+          <label>
+            Packaging Size *
+            <input
+              type="text"
+              name="packagingSize"
+              [(ngModel)]="formData.packagingSize"
+              placeholder="e.g. 1 kg, 500 ml"
+              required
+              maxlength="50"
+            />
+          </label>
+
+          <label>
+            Stock Quantity *
+            <input
+              type="number"
+              name="stockQuantity"
+              [(ngModel)]="formData.stockQuantity"
+              min="0"
+              step="1"
+              required
+            />
+          </label>
+
+          <label>
+            Reorder Level *
+            <input
+              type="number"
+              name="reorderLevel"
+              [(ngModel)]="formData.reorderLevel"
+              min="0"
+              step="1"
+              required
+            />
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            (click)="closeForm()"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="primary-button"
+            type="submit"
+            [disabled]="
+              !formData.name.trim() ||
+              !formData.price ||
+              !formData.brandId ||
+              !formData.categoryId ||
+              !formData.packagingType.trim() ||
+              !formData.packagingSize.trim()
+            "
+          >
+            {{ isEditing ? 'Save Changes' : 'Create Product' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="table-panel">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Brand</th>
+            <th>Category</th>
+            <th>Packaging</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (product of filteredProducts; track product.id) {
+            <tr>
+              <td>
+                <div class="product-info">
+                  <strong>{{ product.name }}</strong>
+                  <span>{{ product.description || 'No description' }}</span>
+                </div>
+              </td>
+
+              <td>{{ getBrandName(product.brandId) }}</td>
+
+              <td>{{ getCategoryName(product.categoryId) }}</td>
+
+              <td>
+                {{ product.packagingType }} · {{ product.packagingSize }}
+              </td>
+
+              <td class="price">₹{{ product.price.toFixed(2) }}</td>
+
+              <td>
+                <span
+                  class="stock-value"
+                  [class.low-stock]="
+                    product.stockQuantity <= product.reorderLevel
+                  "
+                  [class.out-of-stock]="product.stockQuantity === 0"
+                >
+                  {{ product.stockQuantity }}
+                </span>
+              </td>
+
+              <td>
+                <span
+                  class="status-badge"
+                  [class.inactive]="!product.isActive"
+                >
+                  {{ product.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+
+              <td>
+                <div class="action-buttons">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="openEditForm(product)"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="toggle-button"
+                    type="button"
+                    (click)="toggleProductStatus(product)"
+                  >
+                    {{ product.isActive ? 'Deactivate' : 'Activate' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty-state">
+                <strong>No products found</strong>
+                <span>Try changing your filters or add a new product.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="demo-note">
+    Demo mode: Product changes are temporary and are not saved to the backend.
+  </p>
+</section>

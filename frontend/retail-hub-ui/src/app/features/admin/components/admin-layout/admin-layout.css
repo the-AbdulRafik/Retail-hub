@@ -1,19 +1,26 @@
 
 :host {
   display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .admin-workspace {
   display: grid;
   grid-template-columns: 245px minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
   min-height: calc(100vh - 105px);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .admin-sidebar {
+  min-width: 0;
   background: var(--color-secondary);
   color: white;
   padding: 24px 16px;
@@ -33,6 +40,7 @@
   place-items: center;
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   background: var(--color-primary);
   border-radius: var(--radius-md);
   font-size: 22px;
@@ -86,6 +94,7 @@
   width: 22px;
   text-align: center;
   font-size: 18px;
+  flex-shrink: 0;
 }
 
 .sidebar-footer {
@@ -105,6 +114,7 @@
   border-radius: 50%;
   background: #475569;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .sidebar-footer strong,
@@ -123,6 +133,8 @@
 
 .admin-content {
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-topbar {
@@ -134,6 +146,7 @@
   gap: 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  box-sizing: border-box;
 }
 
 .breadcrumb {
@@ -151,15 +164,19 @@
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .admin-page {
+  width: 100%;
+  min-width: 0;
   padding: 28px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 760px) {
   .admin-workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-sidebar {
