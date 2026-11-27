@@ -48,7 +48,7 @@
         <div class="price-section">
 
           <span class="current-price">
-            {{ product.price | currency:'USD' }}
+            {{ product.price | number:'1.2-2' }}
           </span>
 
         </div>
@@ -93,7 +93,7 @@
 
         <div class="subtotal">
           <span>Subtotal</span>
-          <strong>{{ product.price * quantity() | currency:'USD' }}</strong>
+          <strong>{{ product.price * quantity() | number:'1.2-2' }}</strong>
         </div>
 
         <button

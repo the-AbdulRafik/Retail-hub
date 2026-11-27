@@ -221,7 +221,7 @@
           <h3>{{ product.name }}</h3>
 
           <div class="price-row">
-            <strong>{{ product.price | currency:'USD' }}</strong>
+            <strong>{{ product.price | number:'1.2-2' }}</strong>
           </div>
 
           <span class="unit">{{ product.packagingType }} - {{ product.packagingSize }}</span>

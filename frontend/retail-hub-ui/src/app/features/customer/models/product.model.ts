@@ -1,7 +1,7 @@
 export interface Product {
   id: number;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
   imageUrl: string | null;
   brandId: number;
@@ -43,6 +43,6 @@ export interface ProductFilters {
 export interface ProductOption {
   id: number;
   name: string;
-  description: string;
+  description: string | null;
   isActive: boolean;
 }
