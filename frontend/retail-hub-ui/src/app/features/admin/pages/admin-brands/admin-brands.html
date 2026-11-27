@@ -1,0 +1,132 @@
+<section class="brands-page">
+  <div class="page-heading">
+    <div>
+      <h2>Brand Management</h2>
+      <p>Manage your store brands and their information.</p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="openAddForm()">
+      + Add Brand
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search brands..."
+      aria-label="Search brands"
+      [(ngModel)]="searchTerm"
+    />
+
+    <span class="result-count">
+      {{ filteredBrands.length }} brands
+    </span>
+  </div>
+
+  @if (showForm) {
+    <section class="form-panel">
+      <div class="form-heading">
+        <h3>{{ isEditing ? 'Edit Brand' : 'Add New Brand' }}</h3>
+        <button class="close-button" type="button" (click)="closeForm()" aria-label="Close form">
+          ×
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveBrand()">
+        <div class="form-fields">
+          <label>
+            Brand Name
+            <input
+              type="text"
+              name="name"
+              [(ngModel)]="formData.name"
+              placeholder="Enter brand name"
+              required
+              maxlength="100"
+            />
+          </label>
+
+          <label>
+            Description
+            <textarea
+              name="description"
+              [(ngModel)]="formData.description"
+              placeholder="Enter brand description"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="secondary-button" type="button" (click)="closeForm()">
+            Cancel
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="!formData.name.trim()">
+            {{ isEditing ? 'Save Changes' : 'Create Brand' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <section class="table-panel">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Brand Name</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (brand of filteredBrands; track brand.id) {
+            <tr>
+              <td class="brand-name">{{ brand.name }}</td>
+              <td class="description">{{ brand.description || '—' }}</td>
+              <td>
+                <span class="status-badge" [class.inactive]="!brand.isActive">
+                  {{ brand.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="openEditForm(brand)"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="toggle-button"
+                    type="button"
+                    (click)="toggleBrandStatus(brand)"
+                  >
+                    {{ brand.isActive ? 'Deactivate' : 'Activate' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="empty-state">
+                <strong>No brands found</strong>
+                <span>Try another search or add a new brand.</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="demo-note">
+    Demo mode: Changes are temporary and are not saved to the backend.
+  </p>
+</section>
