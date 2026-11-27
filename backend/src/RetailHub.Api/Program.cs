@@ -92,6 +92,7 @@ builder.Services
 
 var authBuilder = builder.Services.AddAuthentication(options =>
 {
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 });
@@ -118,7 +119,12 @@ else
     authBuilder.AddJwtBearer();
 }
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole(IdentityRoles.Admin));
+    options.AddPolicy("CustomerOrAdmin", policy => policy.RequireRole(IdentityRoles.Customer, IdentityRoles.Admin));
+});
+builder.Services.AddProblemDetails();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:4200" };
@@ -179,6 +185,7 @@ builder.Services.AddOpenApi("v1", options =>
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseStatusCodePages();
 
 if (!EF.IsDesignTime)
 {
