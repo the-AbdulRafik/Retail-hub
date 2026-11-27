@@ -1,0 +1,73 @@
+<main class="orders-page">
+  <a routerLink="/customer" class="back-link">← Continue shopping</a>
+  <h1>My Orders</h1>
+
+  <form class="filters" (submit)="applySearch($event)">
+    <label>
+      Search order number
+      <input
+        type="search"
+        maxlength="100"
+        [value]="search()"
+        (input)="updateSearch($event)"
+        placeholder="e.g. ORD-20261127-0101"
+      />
+    </label>
+    <label>
+      Status
+      <select [value]="status()" (change)="updateStatus($event)">
+        <option value="">All statuses</option>
+        @for (orderStatus of statuses; track orderStatus) {
+          <option [value]="orderStatus">{{ orderStatus }}</option>
+        }
+      </select>
+    </label>
+    <button type="submit">Search</button>
+  </form>
+
+  @if (loading()) {
+    <p class="state-card" role="status">Loading your orders...</p>
+  } @else if (errorMessage()) {
+    <section class="state-card error-state" role="alert">
+      <h2>Could not load orders</h2>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" (click)="loadOrders()">Try again</button>
+    </section>
+  } @else if (orders().length === 0) {
+    <section class="state-card">
+      <h2>No orders found</h2>
+      <p>Orders you place will appear here.</p>
+      <a routerLink="/customer" class="primary-link">Browse products</a>
+    </section>
+  } @else {
+    <section class="order-list" aria-label="Your orders">
+      @for (order of orders(); track order.id) {
+        <article class="order-card">
+          <div class="order-heading">
+            <div>
+              <h2>{{ order.orderNumber }}</h2>
+              <p>Placed {{ order.createdAt | date:'medium' }}</p>
+            </div>
+            <span class="status-pill" [class]=" 'status-pill status-' + order.status.toLowerCase() ">
+              {{ order.status }}
+            </span>
+          </div>
+          <p>{{ order.items.length }} line item(s) · {{ order.totalAmount | number:'1.2-2' }}</p>
+          <a [routerLink]="['/customer/orders', order.id]" class="details-link">View order details</a>
+        </article>
+      }
+    </section>
+
+    @if (totalPages() > 1) {
+      <nav class="pagination" aria-label="Order pagination">
+        <button type="button" [disabled]="!hasPreviousPage()" (click)="changePage(page() - 1)">
+          Previous
+        </button>
+        <span>Page {{ page() }} of {{ totalPages() }}</span>
+        <button type="button" [disabled]="!hasNextPage()" (click)="changePage(page() + 1)">
+          Next
+        </button>
+      </nav>
+    }
+  }
+</main>

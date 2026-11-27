@@ -1,0 +1,71 @@
+<main class="order-page">
+  <a routerLink="/customer/orders" class="back-link">← Back to my orders</a>
+
+  @if (loading()) {
+    <p class="state-card" role="status">Loading order details...</p>
+  } @else if (errorMessage()) {
+    <section class="state-card error-state" role="alert">
+      <h1>Could not load this order</h1>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" (click)="retry()">Try again</button>
+    </section>
+  } @else if (order(); as order) {
+    <h1>Order {{ order.orderNumber }}</h1>
+
+    <section class="order-summary">
+      <div>
+        <span>Placed</span>
+        <strong>{{ order.createdAt | date:'medium' }}</strong>
+      </div>
+      <div>
+        <span>Current status</span>
+        <strong>{{ statusLabel(order.status) }}</strong>
+      </div>
+      <div>
+        <span>Order total</span>
+        <strong>{{ order.totalAmount | number:'1.2-2' }}</strong>
+      </div>
+    </section>
+
+    <section class="tracking-card" aria-labelledby="tracking-title">
+      <h2 id="tracking-title">Order status</h2>
+      @if (order.status === 'Cancelled') {
+        <p class="cancelled-status">This order is cancelled.</p>
+      } @else {
+        <ol class="timeline">
+          @for (status of trackingStatuses; track status; let index = $index) {
+            <li [class.reached]="isReached(index)" [class.current]="isCurrent(index)">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span>{{ statusLabel(status) }}</span>
+              @if (isCurrent(index)) {
+                <small>Current status</small>
+              } @else if (isReached(index)) {
+                <small>Completed</small>
+              } @else {
+                <small>Upcoming</small>
+              }
+            </li>
+          }
+        </ol>
+      }
+      <p class="tracking-note">
+        The API reports the current status and order creation time only; it does not provide
+        timestamps for individual status changes.
+      </p>
+    </section>
+
+    <section class="items-card" aria-labelledby="items-title">
+      <h2 id="items-title">Items</h2>
+      @for (item of order.items; track item.id) {
+        <article class="order-item">
+          <div>
+            <h3>{{ item.productName }}</h3>
+            <p>{{ item.packagingDetails }}</p>
+            <p>{{ item.quantity }} × {{ item.unitPrice | number:'1.2-2' }}</p>
+          </div>
+          <strong>{{ item.lineTotal | number:'1.2-2' }}</strong>
+        </article>
+      }
+    </section>
+  }
+</main>

@@ -63,7 +63,11 @@
           <strong>{{ total() | number:'1.2-2' }}</strong>
         </div>
         <p>Discounts and delivery charges are not supported by the current cart contract.</p>
-        <button type="button" disabled>Proceed to checkout</button>
+        @if (isEmpty()) {
+          <button type="button" disabled>Proceed to checkout</button>
+        } @else {
+          <a routerLink="/customer/checkout" class="checkout-link">Proceed to checkout</a>
+        }
       </aside>
     </div>
   }
