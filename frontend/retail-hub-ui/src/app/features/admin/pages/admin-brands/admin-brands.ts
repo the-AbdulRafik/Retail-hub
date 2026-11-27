@@ -1,12 +1,14 @@
-import { Component } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 
-interface Brand {
-  id: number;
-  name: string;
-  description: string;
-  isActive: boolean;
-}
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
+
+import {
+  Brand,
+  BrandApiService,
+  CreateBrandRequest,
+  UpdateBrandRequest,
+} from '../../services/brand-api.service';
 
 @Component({
   selector: 'app-admin-brands',
@@ -14,23 +16,31 @@ interface Brand {
   templateUrl: './admin-brands.html',
   styleUrl: './admin-brands.css',
 })
-export class AdminBrands {
+export class AdminBrands implements OnInit {
+  private readonly brandApi = inject(BrandApiService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   protected searchTerm = '';
-  protected showForm = false;
-  protected isEditing = false;
-  protected selectedBrandId: number | null = null;
+  protected brands: Brand[] = [];
 
-  protected formData = {
-    name: '',
-    description: '',
-  };
+  protected isLoading = false;
+  protected isSaving = false;
+  protected errorMessage = '';
+  protected successMessage = '';
 
-  protected readonly brands: Brand[] = [
-    { id: 1, name: 'FreshFarm', description: 'Fresh groceries and farm products', isActive: true },
-    { id: 2, name: 'DailyNeeds', description: 'Everyday household essentials', isActive: true },
-    { id: 3, name: 'SweetTreats', description: 'Chocolates, sweets and snacks', isActive: true },
-    { id: 4, name: 'GrainHouse', description: 'Rice, wheat and other grains', isActive: false },
-  ];
+  protected isFormOpen = false;
+  protected editingBrandId: number | null = null;
+
+  protected formName = '';
+  protected formDescription = '';
+  protected formError = '';
+
+  // Write operations remain disabled until shared authentication is available.
+  protected readonly canManageBrands = false;
+
+  ngOnInit(): void {
+    this.loadBrands();
+  }
 
   protected get filteredBrands(): Brand[] {
     const term = this.searchTerm.trim().toLowerCase();
@@ -42,62 +52,160 @@ export class AdminBrands {
     return this.brands.filter(
       (brand) =>
         brand.name.toLowerCase().includes(term) ||
-        brand.description.toLowerCase().includes(term),
+        (brand.description ?? '').toLowerCase().includes(term),
     );
   }
 
-  protected openAddForm(): void {
-    this.isEditing = false;
-    this.selectedBrandId = null;
-    this.formData = { name: '', description: '' };
-    this.showForm = true;
+  protected loadBrands(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.brandApi
+      .getBrands()
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (brands) => {
+          this.brands = brands;
+        },
+        error: (error) => {
+          console.error('Failed to load brands:', error);
+          this.errorMessage =
+            'Unable to load brands. Please check whether the backend is running and try again.';
+        },
+      });
+  }
+
+  protected openCreateForm(): void {
+    if (!this.canManageBrands) return;
+
+    this.editingBrandId = null;
+    this.formName = '';
+    this.formDescription = '';
+    this.formError = '';
+    this.successMessage = '';
+    this.isFormOpen = true;
   }
 
   protected openEditForm(brand: Brand): void {
-    this.isEditing = true;
-    this.selectedBrandId = brand.id;
-    this.formData = {
-      name: brand.name,
-      description: brand.description,
-    };
-    this.showForm = true;
-  }
+    if (!this.canManageBrands) return;
 
-  protected saveBrand(): void {
-    const name = this.formData.name.trim();
-    const description = this.formData.description.trim();
-
-    if (!name) {
-      return;
-    }
-
-    if (this.isEditing && this.selectedBrandId !== null) {
-      const brand = this.brands.find((item) => item.id === this.selectedBrandId);
-
-      if (brand) {
-        brand.name = name;
-        brand.description = description;
-      }
-    } else {
-      const nextId = Math.max(0, ...this.brands.map((brand) => brand.id)) + 1;
-
-      this.brands.push({
-        id: nextId,
-        name,
-        description,
-        isActive: true,
-      });
-    }
-
-    this.closeForm();
-  }
-
-  protected toggleBrandStatus(brand: Brand): void {
-    brand.isActive = !brand.isActive;
+    this.editingBrandId = brand.id;
+    this.formName = brand.name;
+    this.formDescription = brand.description ?? '';
+    this.formError = '';
+    this.successMessage = '';
+    this.isFormOpen = true;
   }
 
   protected closeForm(): void {
-    this.showForm = false;
-    this.selectedBrandId = null;
+    if (this.isSaving) return;
+
+    this.isFormOpen = false;
+    this.editingBrandId = null;
+    this.formError = '';
+  }
+
+  protected saveBrand(): void {
+    if (!this.canManageBrands || this.isSaving) return;
+
+    const name = this.formName.trim();
+    const description = this.formDescription.trim();
+
+    if (!name) {
+      this.formError = 'Brand name is required.';
+      return;
+    }
+
+    if (name.length > 100) {
+      this.formError = 'Brand name cannot exceed 100 characters.';
+      return;
+    }
+
+    if (description.length > 500) {
+      this.formError = 'Description cannot exceed 500 characters.';
+      return;
+    }
+
+    const request: CreateBrandRequest = {
+      name,
+      description: description || null,
+    };
+
+    this.isSaving = true;
+    this.formError = '';
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const operation =
+      this.editingBrandId === null
+        ? this.brandApi.createBrand(request)
+        : this.brandApi.updateBrand(this.editingBrandId, {
+            ...request,
+            isActive: true,
+          } satisfies UpdateBrandRequest);
+
+    operation
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.isFormOpen = false;
+          this.successMessage =
+            this.editingBrandId === null
+              ? 'Brand created successfully.'
+              : 'Brand updated successfully.';
+
+          this.editingBrandId = null;
+          this.loadBrands();
+        },
+        error: (error) => {
+          console.error('Failed to save brand:', error);
+          this.formError =
+            'Unable to save the brand. Please try again when Admin authentication is available.';
+        },
+      });
+  }
+
+  protected deactivateBrand(brand: Brand): void {
+    if (!this.canManageBrands || this.isSaving) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to deactivate "${brand.name}"?`,
+    );
+
+    if (!confirmed) return;
+
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.brandApi
+      .deleteBrand(brand.id)
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.successMessage = `${brand.name} deactivated successfully.`;
+          this.loadBrands();
+        },
+        error: (error) => {
+          console.error('Failed to deactivate brand:', error);
+          this.errorMessage =
+            'Unable to deactivate the brand. Admin authentication is required.';
+        },
+      });
   }
 }

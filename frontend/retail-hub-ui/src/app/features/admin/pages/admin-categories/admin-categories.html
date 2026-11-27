@@ -1,14 +1,32 @@
-<section class="categories-page">
+﻿<section class="categories-page">
   <div class="page-heading">
     <div>
       <h2>Category Management</h2>
       <p>Organize and manage your store product categories.</p>
     </div>
 
-    <button class="primary-button" type="button" (click)="openAddForm()">
+    <button
+      class="primary-button"
+      type="button"
+      [disabled]="!canManageCategories"
+      title="Waiting for shared Admin authentication"
+      (click)="openAddForm()"
+    >
       + Add Category
     </button>
   </div>
+
+  @if (successMessage) {
+    <div class="success-message" role="status">
+      {{ successMessage }}
+    </div>
+  }
+
+  @if (errorMessage) {
+    <div class="error-message" role="alert">
+      {{ errorMessage }}
+    </div>
+  }
 
   <div class="toolbar">
     <input
@@ -34,7 +52,7 @@
           (click)="closeForm()"
           aria-label="Close form"
         >
-          ×
+          &times;
         </button>
       </div>
 
@@ -64,10 +82,15 @@
           </label>
         </div>
 
+        @if (formError) {
+          <p class="error-message" role="alert">{{ formError }}</p>
+        }
+
         <div class="form-actions">
           <button
             class="secondary-button"
             type="button"
+            [disabled]="isSaving"
             (click)="closeForm()"
           >
             Cancel
@@ -76,79 +99,112 @@
           <button
             class="primary-button"
             type="submit"
-            [disabled]="!formData.name.trim()"
+            [disabled]="isSaving || !canManageCategories"
+            title="Waiting for shared Admin authentication"
           >
-            {{ isEditing ? 'Save Changes' : 'Create Category' }}
+            {{ isSaving ? 'Saving...' : 'Save Category' }}
           </button>
         </div>
       </form>
     </section>
   }
 
-  <section class="table-panel">
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Category Name</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+  @if (isLoading) {
+    <section class="table-panel">
+      <p class="empty-state">Loading categories...</p>
+    </section>
+  } @else if (errorMessage && categories.length === 0) {
+    <section class="table-panel">
+      <div class="empty-state">
+        <strong>Unable to load categories</strong>
+        <span>{{ errorMessage }}</span>
 
-        <tbody>
-          @for (category of filteredCategories; track category.id) {
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="loadCategories()"
+        >
+          Retry
+        </button>
+      </div>
+    </section>
+  } @else {
+    <section class="table-panel">
+      <div class="table-wrapper">
+        <table>
+          <thead>
             <tr>
-              <td class="category-name">{{ category.name }}</td>
-
-              <td class="description">
-                {{ category.description || '—' }}
-              </td>
-
-              <td>
-                <span
-                  class="status-badge"
-                  [class.inactive]="!category.isActive"
-                >
-                  {{ category.isActive ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-
-              <td>
-                <div class="action-buttons">
-                  <button
-                    class="edit-button"
-                    type="button"
-                    (click)="openEditForm(category)"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    class="toggle-button"
-                    type="button"
-                    (click)="toggleCategoryStatus(category)"
-                  >
-                    {{ category.isActive ? 'Deactivate' : 'Activate' }}
-                  </button>
-                </div>
-              </td>
+              <th>Category Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="4" class="empty-state">
-                <strong>No categories found</strong>
-                <span>Try another search or add a new category.</span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </section>
+          </thead>
+
+          <tbody>
+            @for (category of filteredCategories; track category.id) {
+              <tr>
+                <td class="category-name">{{ category.name }}</td>
+
+                <td class="description">
+                  {{ category.description || '—' }}
+                </td>
+
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.inactive]="!category.isActive"
+                  >
+                    {{ category.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      class="edit-button"
+                      type="button"
+                      [disabled]="!canManageCategories || isSaving"
+                      (click)="openEditForm(category)"
+                      title="Waiting for shared Admin authentication"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      class="toggle-button"
+                      type="button"
+                      [disabled]="!canManageCategories || isSaving || !category.isActive"
+                      (click)="deactivateCategory(category)"
+                      title="Waiting for shared Admin authentication"
+                    >
+                      Deactivate
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="empty-state">
+                  <strong>No categories found</strong>
+                  <span>
+                    @if (searchTerm.trim()) {
+                      Try another search term.
+                    } @else {
+                      No categories are currently available in the database.
+                    }
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
 
   <p class="demo-note">
-    Demo mode: Changes are temporary and are not saved to the backend.
+    Connected to the RetailHub backend. Write operations will be enabled
+    when shared Admin authentication is integrated.
   </p>
 </section>
