@@ -1,56 +1,71 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { CurrencyPipe } from '@angular/common';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Product } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
 
 @Component({
   selector: 'app-product-details',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, CurrencyPipe],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
 export class ProductDetails {
   private readonly route = inject(ActivatedRoute);
   private readonly productService = inject(ProductService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly quantity = signal(1);
   readonly message = signal('');
+  readonly product = signal<Product | null>(null);
+  readonly loading = signal(true);
+  readonly errorMessage = signal('');
 
-  readonly product = computed(() => {
+  constructor() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-
     if (!Number.isInteger(id) || id <= 0) {
-      return undefined;
+      this.loading.set(false);
+      this.errorMessage.set('The product link is invalid.');
+      return;
     }
 
-    return this.productService.getProductById(id);
-  });
+    this.loadProduct(id);
+  }
 
   increaseQuantity(): void {
-    this.quantity.update((value) => value + 1);
+    const product = this.product();
+    if (!product) return;
+    this.quantity.update((value) => Math.min(product.stockQuantity, value + 1));
   }
 
   decreaseQuantity(): void {
+    if (this.product()?.stockQuantity === 0) return;
     this.quantity.update((value) => Math.max(1, value - 1));
-  }
-
-  getDiscountPercentage(price: number, originalPrice: number): number {
-    if (originalPrice <= price || originalPrice <= 0) {
-      return 0;
-    }
-
-    return Math.round(((originalPrice - price) / originalPrice) * 100);
   }
 
   addToCart(): void {
     const product = this.product();
+    if (!product || product.stockQuantity < 1) return;
+    this.message.set('Cart integration is pending the shared CartService.');
+  }
 
-    if (!product) {
-      return;
-    }
+  private loadProduct(id: number): void {
+    this.loading.set(true);
+    this.errorMessage.set('');
 
-    // Temporary feedback.
-    // Full cart functionality will be implemented in Feature 3.
-    this.message.set(`${this.quantity()} ${product.unit} of ${product.name} selected.`);
+    this.productService.getProductById(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (product) => {
+        this.product.set(product);
+        this.quantity.set(product.stockQuantity > 0 ? 1 : 0);
+        this.loading.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loading.set(false);
+        this.errorMessage.set(error.error?.detail ?? 'Unable to load product details.');
+      },
+    });
   }
 }

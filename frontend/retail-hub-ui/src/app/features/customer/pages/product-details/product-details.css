@@ -49,6 +49,25 @@
   padding: 20px;
 }
 
+.image-placeholder {
+  width: 100%;
+  height: 400px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  background: #f1f5f9;
+}
+
+.stock-status {
+  color: var(--color-success);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stock-status.out-of-stock {
+  color: var(--color-danger);
+}
+
 .product-badge {
   position: absolute;
   top: 18px;
@@ -212,6 +231,11 @@
 
 .add-cart-button:hover {
   background: var(--color-primary-hover);
+}
+
+.add-cart-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .success-message {

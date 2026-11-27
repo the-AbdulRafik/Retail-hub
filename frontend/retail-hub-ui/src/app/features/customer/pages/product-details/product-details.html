@@ -1,5 +1,15 @@
 
-@if (product(); as product) {
+@if (loading()) {
+  <main class="not-found">
+    <h2 role="status">Loading product...</h2>
+  </main>
+} @else if (errorMessage()) {
+  <main class="not-found">
+    <h2>Product Unavailable</h2>
+    <p role="alert">{{ errorMessage() }}</p>
+    <a routerLink="/customer" class="back-button">Back to Shopping</a>
+  </main>
+} @else if (product(); as product) {
 
   <main class="details-page">
 
@@ -11,56 +21,44 @@
 
       <div class="product-image-section">
 
-        @if (product.badge) {
-          <span class="product-badge">{{ product.badge }}</span>
+        @if (product.stockQuantity === 0) {
+          <span class="product-badge">Out of stock</span>
         }
 
-        <img
-          [src]="product.image"
-          [alt]="product.name"
-          class="product-image"
-        />
+        @if (product.imageUrl) {
+          <img [src]="product.imageUrl" [alt]="product.name" class="product-image" />
+        } @else {
+          <div class="image-placeholder">No product image</div>
+        }
 
       </div>
 
       <div class="product-info">
 
         <span class="product-category">
-          {{ product.category }}
+          {{ product.categoryName }} · {{ product.brandName }}
         </span>
 
         <h1>{{ product.name }}</h1>
 
-        <div class="rating">
-          <span class="star">★</span>
-          <strong>{{ product.rating }}</strong>
-          <span class="rating-text">Customer rating</span>
-        </div>
-
         <p class="description">
-          {{ product.description || 'Fresh quality product, carefully selected for your everyday shopping needs.' }}
+          {{ product.description || 'No description is available for this product.' }}
         </p>
 
         <div class="price-section">
 
           <span class="current-price">
-            ₹{{ product.price }}
+            {{ product.price | currency:'USD' }}
           </span>
-
-          @if (product.originalPrice > product.price) {
-            <span class="original-price">
-              ₹{{ product.originalPrice }}
-            </span>
-
-            <span class="discount">
-              {{ getDiscountPercentage(product.price, product.originalPrice) }}% OFF
-            </span>
-          }
 
         </div>
 
         <p class="unit-info">
-          Price per {{ product.unit }}
+          {{ product.packagingType }} - {{ product.packagingSize }}
+        </p>
+
+        <p class="stock-status" [class.out-of-stock]="product.stockQuantity === 0">
+          {{ product.stockQuantity > 0 ? product.stockQuantity + ' in stock' : 'Out of stock' }}
         </p>
 
         <div class="quantity-section">
@@ -72,7 +70,7 @@
             <button
               type="button"
               (click)="decreaseQuantity()"
-              [disabled]="quantity() === 1"
+              [disabled]="quantity() === 1 || product.stockQuantity === 0"
               aria-label="Decrease quantity"
             >
               −
@@ -83,6 +81,7 @@
             <button
               type="button"
               (click)="increaseQuantity()"
+              [disabled]="quantity() >= product.stockQuantity"
               aria-label="Increase quantity"
             >
               +
@@ -94,13 +93,14 @@
 
         <div class="subtotal">
           <span>Subtotal</span>
-          <strong>₹{{ product.price * quantity() }}</strong>
+          <strong>{{ product.price * quantity() | currency:'USD' }}</strong>
         </div>
 
         <button
           type="button"
           class="add-cart-button"
           (click)="addToCart()"
+          [disabled]="product.stockQuantity === 0"
         >
           Add to Cart
         </button>

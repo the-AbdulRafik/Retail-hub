@@ -1,108 +1,46 @@
-import { Injectable } from '@angular/core';
-import { Product } from '../models/product.model';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import {
+  PaginatedProducts,
+  Product,
+  ProductFilters,
+  ProductOption,
+} from '../models/product.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProductService {
-  private readonly products: Product[] = [
-    {
-      id: 1,
-      name: 'Fresh Apples',
-      category: 'Fruits',
-      price: 120,
-      originalPrice: 150,
-      rating: 4.8,
-      unit: '1 kg',
-      badge: '20% OFF',
-      image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500',
-      description: 'Enjoy fresh and juicy apples, carefully selected for quality and taste.',
-    },
-    {
-      id: 2,
-      name: 'Fresh Milk',
-      category: 'Dairy',
-      price: 60,
-      originalPrice: 65,
-      rating: 4.7,
-      unit: '1 litre',
-      image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=500',
-      description: 'Fresh milk for your everyday nutrition and healthy lifestyle.',
-    },
-    {
-      id: 3,
-      name: 'Organic Vegetables',
-      category: 'Groceries',
-      price: 90,
-      originalPrice: 120,
-      rating: 4.6,
-      unit: '500 g',
-      badge: 'BESTSELLER',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500',
-      description: 'Fresh vegetables selected to bring quality and goodness to your meals.',
-    },
-    {
-      id: 4,
-      name: 'Orange Juice',
-      category: 'Beverages',
-      price: 110,
-      originalPrice: 130,
-      rating: 4.5,
-      unit: '1 litre',
-      image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500',
-      description: 'Refreshing orange juice for a delicious and fruity drink.',
-    },
-    {
-      id: 5,
-      name: 'Potato Chips',
-      category: 'Snacks',
-      price: 30,
-      originalPrice: 35,
-      rating: 4.4,
-      unit: '150 g',
-      image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=500',
-      description: 'Crispy and crunchy potato chips for your snack time.',
-    },
-    {
-      id: 6,
-      name: 'Fresh Bananas',
-      category: 'Fruits',
-      price: 50,
-      originalPrice: 60,
-      rating: 4.8,
-      unit: '1 dozen',
-      image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500',
-      description: 'Fresh bananas, naturally sweet and perfect for everyday consumption.',
-    },
-    {
-      id: 7,
-      name: 'Fresh Bread',
-      category: 'Groceries',
-      price: 45,
-      originalPrice: 55,
-      rating: 4.5,
-      unit: '400 g',
-      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500',
-      description: 'Soft and fresh bread, suitable for breakfast and everyday meals.',
-    },
-    {
-      id: 8,
-      name: 'Cookies',
-      category: 'Snacks',
-      price: 80,
-      originalPrice: 100,
-      rating: 4.6,
-      unit: '200 g',
-      image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=500',
-      description: 'Delicious cookies for a sweet and satisfying snack.',
-    },
-  ];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = 'http://localhost:5266/api';
 
-  getProducts(): Product[] {
-    return this.products;
+  getProducts(filters: ProductFilters): Observable<PaginatedProducts> {
+    let params = new HttpParams()
+      .set('page', String(filters.page))
+      .set('pageSize', String(filters.pageSize));
+
+    if (filters.search?.trim()) params = params.set('search', filters.search.trim());
+    if (filters.categoryId) params = params.set('categoryId', String(filters.categoryId));
+    if (filters.brandId) params = params.set('brandId', String(filters.brandId));
+    if (filters.minPrice !== undefined) params = params.set('minPrice', String(filters.minPrice));
+    if (filters.maxPrice !== undefined) params = params.set('maxPrice', String(filters.maxPrice));
+    if (filters.inStockOnly) params = params.set('inStockOnly', 'true');
+    if (filters.sortBy) params = params.set('sortBy', filters.sortBy);
+    if (filters.sortOrder) params = params.set('sortOrder', filters.sortOrder);
+
+    return this.http.get<PaginatedProducts>(`${this.apiUrl}/products`, { params });
   }
 
-  getProductById(id: number): Product | undefined {
-    return this.products.find((product) => product.id === id);
+  getProductById(id: number): Observable<Product> {
+    return this.http.get<Product>(`${this.apiUrl}/products/${id}`);
+  }
+
+  getCategories(): Observable<ProductOption[]> {
+    return this.http.get<ProductOption[]>(`${this.apiUrl}/categories`);
+  }
+
+  getBrands(): Observable<ProductOption[]> {
+    return this.http.get<ProductOption[]>(`${this.apiUrl}/brands`);
   }
 }
