@@ -1,4 +1,5 @@
 using RetailHub.Api.Common;
+using RetailHub.Api.DTOs;
 using RetailHub.Api.DTOs.Catalog;
 using RetailHub.Api.Entities;
 using RetailHub.Api.Repositories.Interfaces;
@@ -8,10 +9,55 @@ namespace RetailHub.Api.Services.Catalog;
 
 public sealed class ProductService(IProductRepository productRepository) : IProductService
 {
-    public async Task<IReadOnlyList<ProductResponse>> GetAllAsync(bool includeInactive, CancellationToken cancellationToken = default)
+    private static readonly HashSet<string> AllowedSortFields = new(StringComparer.OrdinalIgnoreCase)
     {
-        var products = await productRepository.GetAllAsync(includeInactive, cancellationToken);
-        return products.Select(MapToResponse).ToList();
+        "name",
+        "price",
+        "createdAt",
+        "stockQuantity"
+    };
+
+    private static readonly HashSet<string> AllowedSortOrders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "asc",
+        "desc"
+    };
+
+    public async Task<PaginatedResponse<ProductResponse>> GetPagedAsync(
+        ProductQueryParameters queryParameters,
+        bool canIncludeInactive,
+        CancellationToken cancellationToken = default)
+    {
+        if (queryParameters.MinPrice.HasValue && queryParameters.MaxPrice.HasValue &&
+            queryParameters.MinPrice.Value > queryParameters.MaxPrice.Value)
+        {
+            throw new BadRequestException("minPrice cannot be greater than maxPrice.");
+        }
+
+        if (!AllowedSortFields.Contains(queryParameters.SortBy.Trim()))
+        {
+            throw new BadRequestException(
+                $"Unsupported sortBy '{queryParameters.SortBy}'. Allowed values: name, price, createdAt, stockQuantity.");
+        }
+
+        if (!AllowedSortOrders.Contains(queryParameters.SortOrder.Trim()))
+        {
+            throw new BadRequestException(
+                $"Unsupported sortOrder '{queryParameters.SortOrder}'. Allowed values: asc, desc.");
+        }
+
+        var includeInactive = canIncludeInactive && queryParameters.IncludeInactive;
+        var (items, totalCount) = await productRepository.GetPagedAsync(
+            queryParameters,
+            includeInactive,
+            cancellationToken);
+
+        var mapped = items.Select(MapToResponse).ToList();
+        return PaginatedResponse<ProductResponse>.Create(
+            mapped,
+            queryParameters.Page,
+            queryParameters.PageSize,
+            totalCount);
     }
 
     public async Task<ProductResponse> GetByIdAsync(int id, bool includeInactive, CancellationToken cancellationToken = default)

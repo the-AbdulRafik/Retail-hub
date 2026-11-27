@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RetailHub.Api.Data;
+using RetailHub.Api.DTOs;
 using RetailHub.Api.DTOs.Catalog;
 using RetailHub.Api.Services.Interfaces;
 
@@ -12,14 +13,15 @@ public sealed class ProductsController(IProductService productService) : Control
 {
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(IReadOnlyList<ProductResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<ProductResponse>>> GetAll(
-        [FromQuery] bool includeInactive = false,
+    [ProducesResponseType(typeof(PaginatedResponse<ProductResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PaginatedResponse<ProductResponse>>> GetAll(
+        [FromQuery] ProductQueryParameters queryParameters,
         CancellationToken cancellationToken = default)
     {
-        var canIncludeInactive = includeInactive && User.IsInRole(IdentityRoles.Admin);
-        var products = await productService.GetAllAsync(canIncludeInactive, cancellationToken);
-        return Ok(products);
+        var isAdmin = User.IsInRole(IdentityRoles.Admin);
+        var result = await productService.GetPagedAsync(queryParameters, isAdmin, cancellationToken);
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]

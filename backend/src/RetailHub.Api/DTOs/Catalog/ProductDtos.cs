@@ -98,3 +98,29 @@ public sealed record ProductResponse(
     bool IsActive,
     string RowVersion,
     DateTime CreatedAt);
+
+public sealed class ProductQueryParameters : PaginationQuery
+{
+    [StringLength(100)]
+    public string? Search { get; set; }
+
+    [Range(1, int.MaxValue)]
+    public int? CategoryId { get; set; }
+
+    [Range(1, int.MaxValue)]
+    public int? BrandId { get; set; }
+
+    [StringLength(60)]
+    public string? PackagingType { get; set; }
+
+    [Range(0, 999999.99)]
+    public decimal? MinPrice { get; set; }
+
+    [Range(0, 999999.99)]
+    public decimal? MaxPrice { get; set; }
+
+    public bool InStockOnly { get; set; }
+    public bool IncludeInactive { get; set; }
+    public string SortBy { get; set; } = "name";
+    public string SortOrder { get; set; } = "asc";
+}
