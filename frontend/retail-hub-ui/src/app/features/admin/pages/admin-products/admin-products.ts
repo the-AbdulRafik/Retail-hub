@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 
@@ -19,6 +19,7 @@ import { Category, CategoryApiService } from '../../services/category-api.servic
   styleUrl: './admin-products.css',
 })
 export class AdminProducts implements OnInit {
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly productApi = inject(ProductApiService);
   private readonly brandApi = inject(BrandApiService);
   private readonly categoryApi = inject(CategoryApiService);
@@ -90,9 +91,13 @@ export class AdminProducts implements OnInit {
         sortBy: 'name',
         sortOrder: 'asc',
       })
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(finalize(() => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: (response) => {
+
           this.products = response.items;
           this.currentPage = response.currentPage;
           this.pageSize = response.pageSize;
@@ -100,6 +105,7 @@ export class AdminProducts implements OnInit {
           this.totalPages = response.totalPages;
           this.hasPreviousPage = response.hasPreviousPage;
           this.hasNextPage = response.hasNextPage;
+          this.cdr.markForCheck();
         },
         error: (error) => {
           console.error('Unable to load products:', error);
@@ -125,12 +131,14 @@ export class AdminProducts implements OnInit {
 
       if (completedRequests === 2) {
         this.isLoadingLookups = false;
+        this.cdr.markForCheck();
       }
     };
 
     this.brandApi.getBrands().subscribe({
       next: (brands) => {
         this.brands = brands;
+        this.cdr.markForCheck();
         finishRequest();
       },
       error: (error) => {
@@ -143,6 +151,7 @@ export class AdminProducts implements OnInit {
     this.categoryApi.getCategories().subscribe({
       next: (categories) => {
         this.categories = categories;
+        this.cdr.markForCheck();
         finishRequest();
       },
       error: (error) => {
