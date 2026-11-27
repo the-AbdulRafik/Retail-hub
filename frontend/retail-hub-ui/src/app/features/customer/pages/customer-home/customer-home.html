@@ -1,0 +1,238 @@
+
+<section class="hero">
+
+  <div class="hero-content">
+    <span class="eyebrow">WELCOME TO RETAILHUB</span>
+
+    <h1>
+      Everything you need,
+      <br />
+      delivered with ease.
+    </h1>
+
+    <p>
+      Discover quality products, amazing deals and everyday essentials
+      at prices you'll love.
+    </p>
+
+    <button class="shop-btn" (click)="scrollToProducts()">
+      Shop Now <span>→</span>
+    </button>
+  </div>
+
+  <div class="hero-decoration">
+    <div class="hero-circle">🛍️</div>
+    <span class="floating-icon icon-one">🥑</span>
+    <span class="floating-icon icon-two">🥛</span>
+    <span class="floating-icon icon-three">🍎</span>
+  </div>
+
+</section>
+
+
+<!-- Shopping Benefits -->
+
+<section class="benefits">
+
+  <div class="benefit">
+    <span>🚚</span>
+    <div>
+      <strong>Fast Delivery</strong>
+      <small>Quick doorstep delivery</small>
+    </div>
+  </div>
+
+  <div class="benefit">
+    <span>✨</span>
+    <div>
+      <strong>Quality Products</strong>
+      <small>Carefully selected items</small>
+    </div>
+  </div>
+
+  <div class="benefit">
+    <span>💰</span>
+    <div>
+      <strong>Best Prices</strong>
+      <small>Great value every day</small>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- Product Categories -->
+
+<section class="shopping-section">
+
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">EXPLORE OUR STORE</span>
+      <h2>Shop by Category</h2>
+    </div>
+  </div>
+
+  <div class="categories">
+
+    @for (category of categories; track category.name) {
+
+      <button
+        class="category-card"
+        [class.selected]="selectedCategory() === category.name"
+        (click)="selectCategory(category.name)">
+
+        <span class="category-icon">
+          {{ category.icon }}
+        </span>
+
+        <strong>{{ category.name }}</strong>
+
+      </button>
+
+    }
+
+  </div>
+
+</section>
+
+
+<!-- Product Listing -->
+
+<section class="shopping-section product-section" id="products">
+
+  <div class="section-heading">
+
+    <div>
+      <span class="eyebrow">OUR COLLECTION</span>
+      <h2>Popular Products</h2>
+      <p>Find your everyday essentials in one place.</p>
+    </div>
+
+    <div class="product-count">
+      {{ filteredProducts().length }} products
+    </div>
+
+  </div>
+
+
+  <!-- Search -->
+
+  <div class="search-bar">
+
+    <span>🔍</span>
+
+    <input
+      type="search"
+      placeholder="Search products..."
+      [value]="searchTerm()"
+      (input)="updateSearch($event)"
+    />
+
+    @if (searchTerm()) {
+      <button
+        class="clear-btn"
+        (click)="searchTerm.set('')">
+        Clear
+      </button>
+    }
+
+  </div>
+
+
+  <!-- Product Cards -->
+
+  <div class="product-grid">
+
+    @for (product of filteredProducts(); track product.id) {
+
+      <article class="product-card">
+
+        <div class="product-image">
+
+          @if (product.badge) {
+            <span class="product-badge">
+              {{ product.badge }}
+            </span>
+          }
+
+          <img
+            [src]="product.image"
+            [alt]="product.name"
+            loading="lazy"
+          />
+
+        </div>
+
+
+        <div class="product-info">
+
+          <span class="product-category">
+            {{ product.category }}
+          </span>
+
+          <h3>{{ product.name }}</h3>
+
+          <div class="rating">
+            ★ {{ product.rating }}
+            <span>Rating</span>
+          </div>
+
+          <div class="price-row">
+            <strong>₹{{ product.price }}</strong>
+            <del>₹{{ product.originalPrice }}</del>
+          </div>
+
+          <span class="unit">
+            {{ product.unit }}
+          </span>
+
+          <button
+            class="add-btn"
+            (click)="addToCart(product)">
+            + Add to Cart
+          </button>
+
+        </div>
+
+      </article>
+
+    } @empty {
+
+      <div class="empty-state">
+
+        <span>🔎</span>
+
+        <h3>No products found</h3>
+
+        <p>Try another search or category.</p>
+
+        <button (click)="resetFilters()">
+          Show All Products
+        </button>
+
+      </div>
+
+    }
+
+  </div>
+
+</section>
+
+
+<!-- Add to Cart Message -->
+
+<div
+  class="cart-toast"
+  [class.visible]="message() !== ''">
+
+  {{ message() }}
+
+</div>
+
+
+<!-- Temporary Cart Counter -->
+
+<button class="floating-cart" aria-label="Shopping cart">
+  🛒
+  <span>{{ cartCount() }}</span>
+</button>
