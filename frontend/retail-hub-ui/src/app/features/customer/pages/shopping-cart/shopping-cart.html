@@ -17,8 +17,12 @@
       <section class="cart-items" aria-label="Cart items">
         @for (item of items(); track item.productId) {
           <article class="cart-item">
-            @if (item.imageUrl) {
-              <img [src]="item.imageUrl" [alt]="item.productName" />
+            @if (item.imageUrl && !failedImageIds().has(item.productId)) {
+              <img
+                [src]="item.imageUrl"
+                [alt]="item.productName"
+                (error)="markImageFailed(item.productId)"
+              />
             } @else {
               <div class="image-placeholder" aria-label="No product image">No image</div>
             }

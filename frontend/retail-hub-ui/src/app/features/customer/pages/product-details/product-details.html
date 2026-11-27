@@ -25,8 +25,13 @@
           <span class="product-badge">Out of stock</span>
         }
 
-        @if (product.imageUrl) {
-          <img [src]="product.imageUrl" [alt]="product.name" class="product-image" />
+        @if (product.imageUrl && !imageFailed()) {
+          <img
+            [src]="product.imageUrl"
+            [alt]="product.name"
+            class="product-image"
+            (error)="markImageFailed()"
+          />
         } @else {
           <div class="image-placeholder">No product image</div>
         }

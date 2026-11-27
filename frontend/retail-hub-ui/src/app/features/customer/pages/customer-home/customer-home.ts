@@ -24,6 +24,7 @@ export class CustomerHome {
 
   readonly cartItemCount = this.cartService.itemCount;
   readonly products = signal<readonly Product[]>([]);
+  readonly failedImageIds = signal<ReadonlySet<number>>(new Set());
   readonly categories = signal<ProductOption[]>([]);
   readonly brands = signal<ProductOption[]>([]);
   readonly searchTerm = signal('');
@@ -50,6 +51,7 @@ export class CustomerHome {
     this.searchInput
       .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((search) => {
+        if (search === this.searchTerm()) return;
         this.searchTerm.set(search);
         this.page.set(1);
         this.loadProducts();
@@ -95,6 +97,7 @@ export class CustomerHome {
   }
 
   resetFilters(): void {
+    this.searchInput.next('');
     this.searchTerm.set('');
     this.selectedCategory.set(null);
     this.selectedBrand.set(null);
@@ -106,6 +109,7 @@ export class CustomerHome {
   }
 
   clearSearch(): void {
+    this.searchInput.next('');
     this.searchTerm.set('');
     this.page.set(1);
     this.loadProducts();
@@ -144,6 +148,7 @@ export class CustomerHome {
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response: PaginatedResponse<Product>) => {
         this.products.set(response.items);
+        this.failedImageIds.set(new Set());
         this.totalCount.set(response.totalCount);
         this.totalPages.set(response.totalPages);
         this.hasPreviousPage.set(response.hasPreviousPage);
@@ -162,5 +167,9 @@ export class CustomerHome {
     document.getElementById('products')?.scrollIntoView({
       behavior: 'smooth',
     });
+  }
+
+  markImageFailed(productId: number): void {
+    this.failedImageIds.update((failedIds) => new Set(failedIds).add(productId));
   }
 }

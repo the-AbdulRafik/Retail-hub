@@ -20,6 +20,7 @@ export class ShoppingCart {
   readonly total = this.cartService.total;
   readonly isEmpty = this.cartService.isEmpty;
   readonly errorMessage = signal('');
+  readonly failedImageIds = signal<ReadonlySet<number>>(new Set());
 
   changeQuantity(item: CartItem, event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -43,5 +44,9 @@ export class ShoppingCart {
   removeItem(productId: number): void {
     this.errorMessage.set('');
     this.cartService.removeItem(productId);
+  }
+
+  markImageFailed(productId: number): void {
+    this.failedImageIds.update((failedIds) => new Set(failedIds).add(productId));
   }
 }

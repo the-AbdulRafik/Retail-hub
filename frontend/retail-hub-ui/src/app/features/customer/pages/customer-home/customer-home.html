@@ -33,33 +33,46 @@
 
 
 <!-- Shopping Benefits -->
-
-<section class="benefits">
-
-  <div class="benefit">
-    <span>🚚</span>
-    <div>
-      <strong>Fast Delivery</strong>
-      <small>Quick doorstep delivery</small>
+<section class="shopping-section benefits" aria-label="Why shop with RetailHub">
+  <article class="product-card benefit-card">
+    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--color-primary)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="var(--color-bg)" stroke="var(--color-border)" />
+      <path d="M10 17h4V5H2v12h3" />
+      <path d="M14 9h4l4 4v4h-3" />
+      <circle cx="7" cy="17" r="2" />
+      <circle cx="17" cy="17" r="2" />
+      <path d="M14 17h1" />
+    </svg>
+    <div class="product-info">
+      <h3>Fast Delivery</h3>
+      <p class="unit">Your essentials, delivered to your doorstep.</p>
     </div>
-  </div>
+  </article>
 
-  <div class="benefit">
-    <span>✨</span>
-    <div>
-      <strong>Quality Products</strong>
-      <small>Carefully selected items</small>
+  <article class="product-card benefit-card">
+    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--color-primary)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="var(--color-bg)" stroke="var(--color-border)" />
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+    <div class="product-info">
+      <h3>Quality Products</h3>
+      <p class="unit">Products selected with care.</p>
     </div>
-  </div>
+  </article>
 
-  <div class="benefit">
-    <span>💰</span>
-    <div>
-      <strong>Best Prices</strong>
-      <small>Great value every day</small>
+  <article class="product-card benefit-card">
+    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--color-primary)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="11" fill="var(--color-bg)" stroke="var(--color-border)" />
+      <circle cx="12" cy="12" r="10" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+      <path d="M12 18V6" />
+    </svg>
+    <div class="product-info">
+      <h3>Best Prices</h3>
+      <p class="unit">Everyday essentials at great prices.</p>
     </div>
-  </div>
-
+  </article>
 </section>
 
 
@@ -136,6 +149,7 @@
 
     <input
       type="search"
+      aria-label="Search products"
       placeholder="Search products..."
       [value]="searchTerm()"
       (input)="updateSearch($event)"
@@ -213,8 +227,13 @@
             <span class="product-badge">Out of stock</span>
           }
 
-          @if (product.imageUrl) {
-            <img [src]="product.imageUrl" [alt]="product.name" loading="lazy" />
+          @if (product.imageUrl && !failedImageIds().has(product.id)) {
+            <img
+              [src]="product.imageUrl"
+              [alt]="product.name"
+              loading="lazy"
+              (error)="markImageFailed(product.id)"
+            />
           } @else {
             <div class="image-placeholder" aria-label="No product image">No image</div>
           }
