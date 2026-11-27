@@ -1,6 +1,12 @@
-
+﻿import { Component, OnInit, inject } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { Component } from '@angular/core';
+import { finalize } from 'rxjs';
+
+import { OrdersApiService, Order } from '../../services/orders-api.service';
+import {
+  InventoryApiService,
+  InventoryItem,
+} from '../../services/inventory-api.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -8,52 +14,77 @@ import { Component } from '@angular/core';
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })
-export class AdminDashboard {
-  protected readonly isDemoData = true;
+export class AdminDashboard implements OnInit {
+  private readonly ordersApi = inject(OrdersApiService);
+  private readonly inventoryApi = inject(InventoryApiService);
 
-  protected readonly stats = [
-    {
-      label: 'Total Orders',
-      value: '1,284',
-      change: '+12.5%',
-      icon: 'ORD',
-      tone: 'orange',
-    },
-    {
-      label: 'Total Revenue',
-      value: 'INR 4,82,500',
-      change: '+8.2%',
-      icon: 'REV',
-      tone: 'green',
-    },
-    {
-      label: 'Pending Orders',
-      value: '36',
-      change: 'Needs attention',
-      icon: 'PEN',
-      tone: 'blue',
-    },
-    {
-      label: 'Low Stock Items',
-      value: '12',
-      change: 'Restock required',
-      icon: 'STK',
-      tone: 'red',
-    },
-  ];
+  protected recentOrders: Order[] = [];
+  protected lowStockProducts: InventoryItem[] = [];
 
-  protected readonly recentOrders = [
-    { orderNumber: 'ORD-1024', customer: 'Arun Kumar', date: '27 Nov 2026', amount: 2450, status: 'Delivered' },
-    { orderNumber: 'ORD-1023', customer: 'Priya Sharma', date: '27 Nov 2026', amount: 1890, status: 'Pending' },
-    { orderNumber: 'ORD-1022', customer: 'Rahul Das', date: '26 Nov 2026', amount: 3200, status: 'Confirmed' },
-    { orderNumber: 'ORD-1021', customer: 'Meena Devi', date: '26 Nov 2026', amount: 950, status: 'Preparing' },
-    { orderNumber: 'ORD-1020', customer: 'Karthik Raj', date: '25 Nov 2026', amount: 1750, status: 'Cancelled' },
-  ];
+  protected isLoadingOrders = false;
+  protected isLoadingInventory = false;
 
-  protected readonly lowStockProducts = [
-    { name: 'Basmati Rice', category: 'Grains', stock: 5, reorderLevel: 20 },
-    { name: 'Sunflower Oil', category: 'Oil', stock: 8, reorderLevel: 25 },
-    { name: 'Chocolate Cookies', category: 'Snacks', stock: 3, reorderLevel: 15 },
-    { name: 'Wheat Flour', category: 'Grains', stock: 10, reorderLevel: 30 },
-  ];
+  protected ordersError = '';
+  protected inventoryError = '';
+
+  ngOnInit(): void {
+    this.loadRecentOrders();
+    this.loadLowStockProducts();
+  }
+
+  protected loadRecentOrders(): void {
+    this.isLoadingOrders = true;
+    this.ordersError = '';
+
+    this.ordersApi
+      .getOrders({ page: 1, pageSize: 5 })
+      .pipe(finalize(() => (this.isLoadingOrders = false)))
+      .subscribe({
+        next: (response) => {
+          this.recentOrders = response.items;
+        },
+        error: (error) => {
+          console.error('Unable to load recent orders:', error);
+          this.ordersError =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to load recent orders.';
+          this.recentOrders = [];
+        },
+      });
+  }
+
+  protected loadLowStockProducts(): void {
+    this.isLoadingInventory = true;
+    this.inventoryError = '';
+
+    this.inventoryApi
+      .getInventory({
+        page: 1,
+        pageSize: 5,
+        lowStockOnly: true,
+      })
+      .pipe(finalize(() => (this.isLoadingInventory = false)))
+      .subscribe({
+        next: (response) => {
+          this.lowStockProducts = response.items;
+        },
+        error: (error) => {
+          console.error('Unable to load low-stock inventory:', error);
+          this.inventoryError =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to load low-stock inventory.';
+          this.lowStockProducts = [];
+        },
+      });
+  }
+
+  protected formatDate(date: string): string {
+    return new Date(date).toLocaleDateString();
+  }
+
+  protected getItemCount(order: Order): number {
+    return order.items.reduce((total, item) => total + item.quantity, 0);
+  }
 }

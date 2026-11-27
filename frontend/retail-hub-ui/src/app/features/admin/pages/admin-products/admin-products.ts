@@ -1,21 +1,16 @@
-
-import { Component } from '@angular/core';
+﻿import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  brandId: number;
-  categoryId: number;
-  packagingType: string;
-  packagingSize: string;
-  stockQuantity: number;
-  reorderLevel: number;
-  isActive: boolean;
-}
+import {
+  Product,
+  ProductApiService,
+  CreateProductRequest,
+  UpdateProductRequest,
+} from '../../services/product-api.service';
+
+import { Brand, BrandApiService } from '../../services/brand-api.service';
+import { Category, CategoryApiService } from '../../services/category-api.service';
 
 @Component({
   selector: 'app-admin-products',
@@ -23,13 +18,41 @@ interface Product {
   templateUrl: './admin-products.html',
   styleUrl: './admin-products.css',
 })
-export class AdminProducts {
+export class AdminProducts implements OnInit {
+  private readonly productApi = inject(ProductApiService);
+  private readonly brandApi = inject(BrandApiService);
+  private readonly categoryApi = inject(CategoryApiService);
+
+  // Write operations stay disabled until shared authentication is ready.
+  protected readonly canManageProducts = false;
+
+  protected products: Product[] = [];
+  protected brands: Brand[] = [];
+  protected categories: Category[] = [];
+
   protected searchTerm = '';
   protected selectedCategory = '';
   protected selectedBrand = '';
+
+  protected currentPage = 1;
+  protected pageSize = 10;
+  protected totalCount = 0;
+  protected totalPages = 0;
+  protected hasPreviousPage = false;
+  protected hasNextPage = false;
+
+  protected isLoading = false;
+  protected isLoadingLookups = false;
+  protected isSaving = false;
+
+  protected errorMessage = '';
+  protected lookupErrorMessage = '';
+  protected successMessage = '';
+  protected formError = '';
+
   protected showForm = false;
   protected isEditing = false;
-  protected selectedProductId: number | null = null;
+  protected selectedProduct: Product | null = null;
 
   protected formData = {
     name: '',
@@ -40,118 +63,134 @@ export class AdminProducts {
     categoryId: '',
     packagingType: '',
     packagingSize: '',
-    stockQuantity: '',
-    reorderLevel: '',
+    stockQuantity: '0',
+    reorderLevel: '10',
   };
 
-  protected readonly brands = [
-    { id: 1, name: 'FreshFarm' },
-    { id: 2, name: 'DailyChoice' },
-    { id: 3, name: 'NatureBasket' },
-  ];
+  ngOnInit(): void {
+    this.loadProducts();
+    this.loadDropdownData();
+  }
 
-  protected readonly categories = [
-    { id: 1, name: 'Groceries' },
-    { id: 2, name: 'Grains' },
-    { id: 3, name: 'Beverages' },
-    { id: 4, name: 'Snacks' },
-    { id: 5, name: 'Household' },
-  ];
+  protected loadProducts(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
 
-  protected readonly products: Product[] = [
-    {
-      id: 1,
-      name: 'Premium Basmati Rice',
-      description: 'Long grain premium basmati rice',
-      price: 180,
-      imageUrl: '',
-      brandId: 1,
-      categoryId: 2,
-      packagingType: 'Pouch',
-      packagingSize: '1 kg',
-      stockQuantity: 45,
-      reorderLevel: 10,
-      isActive: true,
-    },
-    {
-      id: 2,
-      name: 'Sunflower Oil',
-      description: 'Refined sunflower cooking oil',
-      price: 145,
-      imageUrl: '',
-      brandId: 2,
-      categoryId: 1,
-      packagingType: 'Bottle',
-      packagingSize: '1 L',
-      stockQuantity: 8,
-      reorderLevel: 15,
-      isActive: true,
-    },
-    {
-      id: 3,
-      name: 'Chocolate Cookies',
-      description: 'Crunchy chocolate cookies',
-      price: 60,
-      imageUrl: '',
-      brandId: 3,
-      categoryId: 4,
-      packagingType: 'Packet',
-      packagingSize: '200 g',
-      stockQuantity: 30,
-      reorderLevel: 10,
-      isActive: true,
-    },
-    {
-      id: 4,
-      name: 'Orange Juice',
-      description: 'Refreshing orange fruit drink',
-      price: 95,
-      imageUrl: '',
-      brandId: 2,
-      categoryId: 3,
-      packagingType: 'Bottle',
-      packagingSize: '500 ml',
-      stockQuantity: 0,
-      reorderLevel: 12,
-      isActive: false,
-    },
-  ];
+    this.productApi
+      .getProducts({
+        page: this.currentPage,
+        pageSize: this.pageSize,
+        search: this.searchTerm.trim() || undefined,
+        categoryId: this.selectedCategory
+          ? Number(this.selectedCategory)
+          : undefined,
+        brandId: this.selectedBrand
+          ? Number(this.selectedBrand)
+          : undefined,
+        sortBy: 'name',
+        sortOrder: 'asc',
+      })
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
+        next: (response) => {
+          this.products = response.items;
+          this.currentPage = response.currentPage;
+          this.pageSize = response.pageSize;
+          this.totalCount = response.totalCount;
+          this.totalPages = response.totalPages;
+          this.hasPreviousPage = response.hasPreviousPage;
+          this.hasNextPage = response.hasNextPage;
+        },
+        error: (error) => {
+          console.error('Unable to load products:', error);
+          this.errorMessage =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to load products. Please try again.';
+          this.products = [];
+          this.totalCount = 0;
+          this.totalPages = 0;
+        },
+      });
+  }
 
-  protected get filteredProducts(): Product[] {
-    const term = this.searchTerm.trim().toLowerCase();
+  protected loadDropdownData(): void {
+    this.isLoadingLookups = true;
+    this.lookupErrorMessage = '';
 
-    return this.products.filter((product) => {
-      const matchesSearch =
-        !term ||
-        product.name.toLowerCase().includes(term) ||
-        product.description.toLowerCase().includes(term);
+    let completedRequests = 0;
 
-      const matchesCategory =
-        !this.selectedCategory ||
-        product.categoryId === Number(this.selectedCategory);
+    const finishRequest = (): void => {
+      completedRequests++;
 
-      const matchesBrand =
-        !this.selectedBrand ||
-        product.brandId === Number(this.selectedBrand);
+      if (completedRequests === 2) {
+        this.isLoadingLookups = false;
+      }
+    };
 
-      return matchesSearch && matchesCategory && matchesBrand;
+    this.brandApi.getBrands().subscribe({
+      next: (brands) => {
+        this.brands = brands;
+        finishRequest();
+      },
+      error: (error) => {
+        console.error('Unable to load brands:', error);
+        this.lookupErrorMessage = 'Unable to load brand options.';
+        finishRequest();
+      },
+    });
+
+    this.categoryApi.getCategories().subscribe({
+      next: (categories) => {
+        this.categories = categories;
+        finishRequest();
+      },
+      error: (error) => {
+        console.error('Unable to load categories:', error);
+        this.lookupErrorMessage = this.lookupErrorMessage
+          ? `${this.lookupErrorMessage} Unable to load category options.`
+          : 'Unable to load category options.';
+        finishRequest();
+      },
     });
   }
 
-  protected getBrandName(brandId: number): string {
-    return this.brands.find((brand) => brand.id === brandId)?.name ?? 'Unknown';
+  protected onFiltersChanged(): void {
+    this.currentPage = 1;
+    this.loadProducts();
   }
 
-  protected getCategoryName(categoryId: number): string {
-    return (
-      this.categories.find((category) => category.id === categoryId)?.name ??
-      'Unknown'
-    );
+  protected goToPreviousPage(): void {
+    if (this.hasPreviousPage && !this.isLoading) {
+      this.currentPage--;
+      this.loadProducts();
+    }
+  }
+
+  protected goToNextPage(): void {
+    if (this.hasNextPage && !this.isLoading) {
+      this.currentPage++;
+      this.loadProducts();
+    }
+  }
+
+  protected getBrandName(product: Product): string {
+    return product.brandName;
+  }
+
+  protected getCategoryName(product: Product): string {
+    return product.categoryName;
   }
 
   protected openAddForm(): void {
+    if (!this.canManageProducts) {
+      return;
+    }
+
     this.isEditing = false;
-    this.selectedProductId = null;
+    this.selectedProduct = null;
+    this.formError = '';
+
     this.formData = {
       name: '',
       description: '',
@@ -164,18 +203,24 @@ export class AdminProducts {
       stockQuantity: '0',
       reorderLevel: '10',
     };
+
     this.showForm = true;
   }
 
   protected openEditForm(product: Product): void {
+    if (!this.canManageProducts) {
+      return;
+    }
+
     this.isEditing = true;
-    this.selectedProductId = product.id;
+    this.selectedProduct = product;
+    this.formError = '';
 
     this.formData = {
       name: product.name,
-      description: product.description,
+      description: product.description ?? '',
       price: String(product.price),
-      imageUrl: product.imageUrl,
+      imageUrl: product.imageUrl ?? '',
       brandId: String(product.brandId),
       categoryId: String(product.categoryId),
       packagingType: product.packagingType,
@@ -188,6 +233,10 @@ export class AdminProducts {
   }
 
   protected saveProduct(): void {
+    if (!this.canManageProducts || this.isSaving) {
+      return;
+    }
+
     const name = this.formData.name.trim();
     const price = Number(this.formData.price);
     const stockQuantity = Number(this.formData.stockQuantity);
@@ -195,25 +244,28 @@ export class AdminProducts {
 
     if (
       !name ||
+      name.length > 150 ||
       !this.formData.brandId ||
       !this.formData.categoryId ||
       !this.formData.packagingType.trim() ||
       !this.formData.packagingSize.trim() ||
       !Number.isFinite(price) ||
-      price <= 0 ||
+      price < 0 ||
+      price > 999999.99 ||
       !Number.isInteger(stockQuantity) ||
       stockQuantity < 0 ||
       !Number.isInteger(reorderLevel) ||
       reorderLevel < 0
     ) {
+      this.formError = 'Please enter valid product details.';
       return;
     }
 
-    const productData = {
+    const request: CreateProductRequest = {
       name,
-      description: this.formData.description.trim(),
+      description: this.formData.description.trim() || null,
       price,
-      imageUrl: this.formData.imageUrl.trim(),
+      imageUrl: this.formData.imageUrl.trim() || null,
       brandId: Number(this.formData.brandId),
       categoryId: Number(this.formData.categoryId),
       packagingType: this.formData.packagingType.trim(),
@@ -222,34 +274,88 @@ export class AdminProducts {
       reorderLevel,
     };
 
-    if (this.isEditing && this.selectedProductId !== null) {
-      const product = this.products.find(
-        (item) => item.id === this.selectedProductId,
-      );
+    this.isSaving = true;
+    this.formError = '';
 
-      if (product) {
-        Object.assign(product, productData);
-      }
-    } else {
-      const nextId =
-        Math.max(0, ...this.products.map((product) => product.id)) + 1;
+    if (this.isEditing && this.selectedProduct) {
+      const updateRequest: UpdateProductRequest = {
+        ...request,
+        isActive: this.selectedProduct.isActive,
+        rowVersion: this.selectedProduct.rowVersion,
+      };
 
-      this.products.push({
-        id: nextId,
-        ...productData,
-        isActive: true,
-      });
+      this.productApi
+        .updateProduct(this.selectedProduct.id, updateRequest)
+        .pipe(finalize(() => (this.isSaving = false)))
+        .subscribe({
+          next: () => {
+            this.successMessage = 'Product updated successfully.';
+            this.closeForm();
+            this.loadProducts();
+          },
+          error: (error) => {
+            console.error('Unable to update product:', error);
+            this.formError =
+              error.error?.detail ||
+              error.error?.title ||
+              'Unable to update product.';
+          },
+        });
+
+      return;
     }
 
-    this.closeForm();
+    this.productApi
+      .createProduct(request)
+      .pipe(finalize(() => (this.isSaving = false)))
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Product created successfully.';
+          this.closeForm();
+          this.currentPage = 1;
+          this.loadProducts();
+        },
+        error: (error) => {
+          console.error('Unable to create product:', error);
+          this.formError =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to create product.';
+        },
+      });
   }
 
-  protected toggleProductStatus(product: Product): void {
-    product.isActive = !product.isActive;
+  protected deactivateProduct(product: Product): void {
+    if (!this.canManageProducts) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to deactivate "${product.name}"?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.productApi.deactivateProduct(product.id).subscribe({
+      next: () => {
+        this.successMessage = 'Product deactivated successfully.';
+        this.loadProducts();
+      },
+      error: (error) => {
+        console.error('Unable to deactivate product:', error);
+        this.errorMessage =
+          error.error?.detail ||
+          error.error?.title ||
+          'Unable to deactivate product.';
+      },
+    });
   }
 
   protected closeForm(): void {
     this.showForm = false;
-    this.selectedProductId = null;
+    this.selectedProduct = null;
+    this.formError = '';
   }
 }

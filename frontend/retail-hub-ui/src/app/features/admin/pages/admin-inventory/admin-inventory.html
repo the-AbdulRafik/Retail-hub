@@ -1,165 +1,172 @@
-
-<section class="inventory-page">
-  <div class="page-heading">
+﻿<section class="inventory-page">
+  <header class="page-header">
     <div>
-      <h2>Inventory Management</h2>
-      <p>Monitor stock levels and update product inventory.</p>
+      <h1>Inventory Management</h1>
+      <p>Monitor product stock levels and reorder requirements.</p>
     </div>
-  </div>
+  </header>
 
-  <div class="summary-grid">
-    <article class="summary-card">
-      <span>Total Products</span>
-      <strong>{{ totalProducts }}</strong>
-    </article>
+  @if (successMessage) {
+    <div class="success-message" role="status">
+      {{ successMessage }}
+    </div>
+  }
 
-    <article class="summary-card">
-      <span>Low Stock</span>
-      <strong class="warning-value">{{ lowStockCount }}</strong>
-    </article>
-
-    <article class="summary-card">
-      <span>Out of Stock</span>
-      <strong class="danger-value">{{ outOfStockCount }}</strong>
-    </article>
-  </div>
-
-  <div class="toolbar">
+  <div class="inventory-toolbar">
     <input
       type="search"
       placeholder="Search products..."
-      aria-label="Search inventory"
       [(ngModel)]="searchTerm"
+      (keyup.enter)="onFiltersChanged()"
+      aria-label="Search inventory"
     />
 
-    <select
-      aria-label="Filter by stock status"
-      [(ngModel)]="selectedStockStatus"
-    >
-      <option value="">All Stock Status</option>
-      <option value="In Stock">In Stock</option>
-      <option value="Low Stock">Low Stock</option>
-      <option value="Out of Stock">Out of Stock</option>
-    </select>
+    <label class="filter-option">
+      <input
+        type="checkbox"
+        [(ngModel)]="lowStockOnly"
+        (change)="onFiltersChanged()"
+      />
+      Low stock only
+    </label>
 
-    <span class="result-count">
-      {{ filteredInventory.length }} products
-    </span>
+    <button type="button" (click)="onFiltersChanged()" [disabled]="isLoading">
+      Search
+    </button>
   </div>
 
-  @if (showForm && selectedItem) {
-    <section class="form-panel">
-      <div class="form-heading">
-        <div>
-          <h3>Update Stock</h3>
-          <p>{{ selectedItem.productName }}</p>
-        </div>
-
-        <button
-          class="close-button"
-          type="button"
-          (click)="closeForm()"
-          aria-label="Close form"
-        >
-          ×
-        </button>
-      </div>
-
-      <form (ngSubmit)="updateStock()">
-        <label class="stock-input-label">
-          Available Quantity
-          <input
-            type="number"
-            name="updatedQuantity"
-            [(ngModel)]="updatedQuantity"
-            min="0"
-            step="1"
-            required
-          />
-        </label>
-
-        <div class="form-actions">
-          <button
-            class="secondary-button"
-            type="button"
-            (click)="closeForm()"
-          >
-            Cancel
-          </button>
-
-          <button
-            class="primary-button"
-            type="submit"
-            [disabled]="!isValidQuantity(updatedQuantity)"
-          >
-            Update Stock
-          </button>
-        </div>
-      </form>
-    </section>
-  }
-
-  <section class="table-panel">
-    <div class="table-wrapper">
+  @if (isLoading) {
+    <div class="loading-state" role="status">
+      Loading inventory...
+    </div>
+  } @else if (errorMessage) {
+    <div class="error-state" role="alert">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="loadInventory()">Retry</button>
+    </div>
+  } @else if (inventory.length === 0) {
+    <div class="empty-state">
+      <h2>No inventory records found</h2>
+      <p>Try changing your search or stock filter.</p>
+    </div>
+  } @else {
+    <div class="table-container">
       <table>
         <thead>
           <tr>
             <th>Product</th>
             <th>Brand</th>
             <th>Category</th>
-            <th>Available Stock</th>
+            <th>Packaging</th>
+            <th>Stock</th>
             <th>Reorder Level</th>
-            <th>Stock Status</th>
-            <th>Last Updated</th>
-            <th>Actions</th>
+            <th>Status</th>
+            <th>Action</th>
           </tr>
         </thead>
 
         <tbody>
-          @for (item of filteredInventory; track item.productId) {
+          @for (item of inventory; track item.productId) {
             <tr>
-              <td class="product-name">{{ item.productName }}</td>
-              <td>{{ item.brand }}</td>
-              <td>{{ item.category }}</td>
-              <td class="quantity">{{ item.stockQuantity }}</td>
+              <td>{{ item.productName }}</td>
+              <td>{{ item.brandName }}</td>
+              <td>{{ item.categoryName }}</td>
+              <td>{{ item.packagingType }} - {{ item.packagingSize }}</td>
+              <td>{{ item.stockQuantity }}</td>
               <td>{{ item.reorderLevel }}</td>
-
               <td>
                 <span
-                  class="status-badge"
-                  [class.low-stock]="getStockStatus(item) === 'Low Stock'"
-                  [class.out-of-stock]="getStockStatus(item) === 'Out of Stock'"
+                  class="stock-status"
+                  [class.low-stock]="item.isLowStock"
+                  [class.out-of-stock]="item.stockQuantity === 0"
                 >
                   {{ getStockStatus(item) }}
                 </span>
               </td>
-
-              <td>{{ item.lastUpdated }}</td>
-
               <td>
                 <button
-                  class="edit-button"
                   type="button"
                   (click)="openUpdateForm(item)"
+                  [disabled]="!canManageInventory"
+                  [title]="canManageInventory ? 'Update stock' : 'Waiting for shared authentication'"
                 >
-                  Update Stock
+                  Update
                 </button>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="8" class="empty-state">
-                <strong>No inventory items found</strong>
-                <span>Try changing your search or stock status filter.</span>
               </td>
             </tr>
           }
         </tbody>
       </table>
     </div>
-  </section>
 
-  <p class="demo-note">
-    Demo mode: Stock updates are temporary and are not saved to the backend.
-  </p>
+    <div class="pagination">
+      <span>
+        Page {{ currentPage }} of {{ totalPages }} ·
+        {{ totalCount }} records
+      </span>
+
+      <div>
+        <button
+          type="button"
+          (click)="goToPreviousPage()"
+          [disabled]="!hasPreviousPage || isLoading"
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          (click)="goToNextPage()"
+          [disabled]="!hasNextPage || isLoading"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (showForm && selectedItem) {
+    <div class="inventory-form-overlay">
+      <form class="inventory-form" (ngSubmit)="updateStock()">
+        <h2>Update Inventory</h2>
+        <p>{{ selectedItem.productName }}</p>
+
+        <label for="stockQuantity">Stock Quantity</label>
+        <input
+          id="stockQuantity"
+          type="number"
+          min="0"
+          step="1"
+          name="stockQuantity"
+          [(ngModel)]="updatedQuantity"
+          required
+        />
+
+        <label for="reorderLevel">Reorder Level</label>
+        <input
+          id="reorderLevel"
+          type="number"
+          min="0"
+          step="1"
+          name="reorderLevel"
+          [(ngModel)]="updatedReorderLevel"
+          required
+        />
+
+        @if (formError) {
+          <p class="error-state" role="alert">{{ formError }}</p>
+        }
+
+        <div class="form-actions">
+          <button type="button" (click)="closeForm()">Cancel</button>
+          <button
+            type="submit"
+            [disabled]="!canManageInventory || isSaving"
+          >
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
 </section>

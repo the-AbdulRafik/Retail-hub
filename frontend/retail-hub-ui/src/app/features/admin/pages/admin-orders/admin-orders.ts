@@ -1,149 +1,201 @@
-
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CurrencyPipe } from '@angular/common';
+import { finalize } from 'rxjs';
 
-interface OrderItem {
-  id: number;
-  customerName: string;
-  orderDate: string;
-  totalAmount: number;
-  itemCount: number;
-  paymentStatus: string;
-  orderStatus: string;
-}
+import {
+  OrdersApiService,
+  Order,
+  OrderStatus,
+} from '../../services/orders-api.service';
 
 @Component({
   selector: 'app-admin-orders',
-  imports: [FormsModule],
+  imports: [FormsModule, CurrencyPipe],
   templateUrl: './admin-orders.html',
   styleUrl: './admin-orders.css',
 })
-export class AdminOrders {
-  protected searchTerm = '';
-  protected selectedStatus = '';
-  protected selectedPaymentStatus = '';
-  protected showForm = false;
-  protected selectedOrder: OrderItem | null = null;
-  protected updatedStatus = '';
+export class AdminOrders implements OnInit {
+  private readonly ordersApi = inject(OrdersApiService);
 
-  protected readonly orders: OrderItem[] = [
-    {
-      id: 1001,
-      customerName: 'Arun Kumar',
-      orderDate: '2026-11-25',
-      totalAmount: 1250,
-      itemCount: 4,
-      paymentStatus: 'Paid',
-      orderStatus: 'Delivered',
-    },
-    {
-      id: 1002,
-      customerName: 'Priya Sharma',
-      orderDate: '2026-11-26',
-      totalAmount: 850,
-      itemCount: 2,
-      paymentStatus: 'Paid',
-      orderStatus: 'Processing',
-    },
-    {
-      id: 1003,
-      customerName: 'Rahul Dev',
-      orderDate: '2026-11-26',
-      totalAmount: 2100,
-      itemCount: 5,
-      paymentStatus: 'Pending',
-      orderStatus: 'Pending',
-    },
-    {
-      id: 1004,
-      customerName: 'Sneha Raj',
-      orderDate: '2026-11-24',
-      totalAmount: 450,
-      itemCount: 1,
-      paymentStatus: 'Paid',
-      orderStatus: 'Shipped',
-    },
-    {
-      id: 1005,
-      customerName: 'Karthik S',
-      orderDate: '2026-11-23',
-      totalAmount: 1750,
-      itemCount: 3,
-      paymentStatus: 'Paid',
-      orderStatus: 'Cancelled',
-    },
-    {
-      id: 1006,
-      customerName: 'Meena Devi',
-      orderDate: '2026-11-27',
-      totalAmount: 980,
-      itemCount: 2,
-      paymentStatus: 'Pending',
-      orderStatus: 'Pending',
-    },
+  protected readonly canManageOrders = false;
+
+  protected orders: Order[] = [];
+
+  protected searchTerm = '';
+  protected selectedStatus: OrderStatus | '' = '';
+
+  protected readonly statuses: OrderStatus[] = [
+    'Pending',
+    'Confirmed',
+    'Preparing',
+    'OutForDelivery',
+    'Delivered',
+    'Cancelled',
   ];
 
-  protected get filteredOrders(): OrderItem[] {
-    const term = this.searchTerm.trim().toLowerCase();
+  private readonly allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+    Pending: ['Confirmed', 'Cancelled'],
+    Confirmed: ['Preparing', 'Cancelled'],
+    Preparing: ['OutForDelivery', 'Cancelled'],
+    OutForDelivery: ['Delivered'],
+    Delivered: [],
+    Cancelled: [],
+  };
 
-    return this.orders.filter((order) => {
-      const matchesSearch =
-        !term ||
-        String(order.id).includes(term) ||
-        order.customerName.toLowerCase().includes(term);
+  protected currentPage = 1;
+  protected pageSize = 10;
+  protected totalCount = 0;
+  protected totalPages = 0;
+  protected hasPreviousPage = false;
+  protected hasNextPage = false;
 
-      const matchesStatus =
-        !this.selectedStatus ||
-        order.orderStatus === this.selectedStatus;
+  protected isLoading = false;
+  protected isSaving = false;
 
-      const matchesPayment =
-        !this.selectedPaymentStatus ||
-        order.paymentStatus === this.selectedPaymentStatus;
+  protected errorMessage = '';
+  protected successMessage = '';
+  protected formError = '';
 
-      return matchesSearch && matchesStatus && matchesPayment;
-    });
+  protected showForm = false;
+  protected selectedOrder: Order | null = null;
+  protected updatedStatus: OrderStatus | '' = '';
+
+  ngOnInit(): void {
+    this.loadOrders();
   }
 
-  protected get totalOrders(): number {
-    return this.orders.length;
+  protected loadOrders(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.ordersApi
+      .getOrders({
+        page: this.currentPage,
+        pageSize: this.pageSize,
+        search: this.searchTerm.trim() || undefined,
+        status: this.selectedStatus || undefined,
+      })
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
+        next: (response) => {
+          this.orders = response.items;
+          this.currentPage = response.currentPage;
+          this.pageSize = response.pageSize;
+          this.totalCount = response.totalCount;
+          this.totalPages = response.totalPages;
+          this.hasPreviousPage = response.hasPreviousPage;
+          this.hasNextPage = response.hasNextPage;
+        },
+        error: (error) => {
+          console.error('Unable to load orders:', error);
+
+          this.errorMessage =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to load orders. Please try again.';
+
+          this.orders = [];
+          this.totalCount = 0;
+          this.totalPages = 0;
+        },
+      });
   }
 
-  protected get pendingOrders(): number {
-    return this.orders.filter(
-      (order) => order.orderStatus === 'Pending',
-    ).length;
+  protected onFiltersChanged(): void {
+    this.currentPage = 1;
+    this.loadOrders();
   }
 
-  protected get processingOrders(): number {
-    return this.orders.filter(
-      (order) => order.orderStatus === 'Processing',
-    ).length;
+  protected goToPreviousPage(): void {
+    if (this.hasPreviousPage && !this.isLoading) {
+      this.currentPage--;
+      this.loadOrders();
+    }
   }
 
-  protected get deliveredOrders(): number {
-    return this.orders.filter(
-      (order) => order.orderStatus === 'Delivered',
-    ).length;
+  protected goToNextPage(): void {
+    if (this.hasNextPage && !this.isLoading) {
+      this.currentPage++;
+      this.loadOrders();
+    }
   }
 
-  protected openUpdateForm(order: OrderItem): void {
+  protected getAllowedStatuses(status: OrderStatus): OrderStatus[] {
+    return this.allowedTransitions[status];
+  }
+
+  protected openUpdateForm(order: Order): void {
+    if (!this.canManageOrders) {
+      return;
+    }
+
+    const allowed = this.getAllowedStatuses(order.status);
+
+    if (allowed.length === 0) {
+      return;
+    }
+
     this.selectedOrder = order;
-    this.updatedStatus = order.orderStatus;
+    this.updatedStatus = allowed[0];
+    this.formError = '';
     this.showForm = true;
   }
 
   protected updateOrderStatus(): void {
-    if (!this.selectedOrder || !this.updatedStatus) {
+    if (
+      !this.canManageOrders ||
+      !this.selectedOrder ||
+      !this.updatedStatus ||
+      this.isSaving
+    ) {
       return;
     }
 
-    this.selectedOrder.orderStatus = this.updatedStatus;
-    this.closeForm();
+    const allowed = this.getAllowedStatuses(this.selectedOrder.status);
+
+    if (!allowed.includes(this.updatedStatus)) {
+      this.formError = 'This status transition is not allowed.';
+      return;
+    }
+
+    this.isSaving = true;
+    this.formError = '';
+
+    this.ordersApi
+      .updateOrderStatus(this.selectedOrder.id, {
+        status: this.updatedStatus,
+      })
+      .pipe(finalize(() => (this.isSaving = false)))
+      .subscribe({
+        next: () => {
+          this.successMessage = 'Order status updated successfully.';
+          this.closeForm();
+          this.loadOrders();
+        },
+        error: (error) => {
+          console.error('Unable to update order status:', error);
+
+          this.formError =
+            error.error?.detail ||
+            error.error?.title ||
+            'Unable to update order status.';
+        },
+      });
   }
 
   protected closeForm(): void {
     this.showForm = false;
     this.selectedOrder = null;
     this.updatedStatus = '';
+    this.formError = '';
+  }
+
+  protected getItemCount(order: Order): number {
+    return order.items.reduce((total, item) => total + item.quantity, 0);
+  }
+
+  protected formatDate(date: string): string {
+    return new Date(date).toLocaleDateString();
   }
 }

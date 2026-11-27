@@ -1,5 +1,4 @@
-
-<section class="orders-page">
+﻿<section class="orders-page">
   <div class="page-heading">
     <div>
       <h2>Orders Management</h2>
@@ -7,61 +6,123 @@
     </div>
   </div>
 
-  <div class="summary-grid">
-    <article class="summary-card">
-      <span>Total Orders</span>
-      <strong>{{ totalOrders }}</strong>
-    </article>
-
-    <article class="summary-card">
-      <span>Pending Orders</span>
-      <strong class="warning-value">{{ pendingOrders }}</strong>
-    </article>
-
-    <article class="summary-card">
-      <span>Processing Orders</span>
-      <strong class="processing-value">{{ processingOrders }}</strong>
-    </article>
-
-    <article class="summary-card">
-      <span>Delivered Orders</span>
-      <strong class="success-value">{{ deliveredOrders }}</strong>
-    </article>
-  </div>
+  @if (successMessage) {
+    <div class="success-message" role="status">
+      {{ successMessage }}
+    </div>
+  }
 
   <div class="toolbar">
     <input
       type="search"
-      placeholder="Search order ID or customer..."
+      placeholder="Search order number or customer..."
       aria-label="Search orders"
       [(ngModel)]="searchTerm"
+      (keyup.enter)="onFiltersChanged()"
     />
 
     <select
       aria-label="Filter by order status"
       [(ngModel)]="selectedStatus"
+      (change)="onFiltersChanged()"
     >
       <option value="">All Order Statuses</option>
-      <option value="Pending">Pending</option>
-      <option value="Processing">Processing</option>
-      <option value="Shipped">Shipped</option>
-      <option value="Delivered">Delivered</option>
-      <option value="Cancelled">Cancelled</option>
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ status }}</option>
+      }
     </select>
 
-    <select
-      aria-label="Filter by payment status"
-      [(ngModel)]="selectedPaymentStatus"
-    >
-      <option value="">All Payment Statuses</option>
-      <option value="Paid">Paid</option>
-      <option value="Pending">Pending</option>
-    </select>
-
-    <span class="result-count">
-      {{ filteredOrders.length }} orders
-    </span>
+    <button type="button" (click)="onFiltersChanged()" [disabled]="isLoading">
+      Search
+    </button>
   </div>
+
+  @if (isLoading) {
+    <div class="loading-state" role="status">Loading orders...</div>
+  } @else if (errorMessage) {
+    <div class="error-state" role="alert">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="loadOrders()">Retry</button>
+    </div>
+  } @else if (orders.length === 0) {
+    <div class="empty-state">
+      <strong>No orders found</strong>
+      <p>Orders will appear here when customers place them.</p>
+    </div>
+  } @else {
+    <section class="table-panel">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Order Number</th>
+              <th>Customer</th>
+              <th>Order Date</th>
+              <th>Items</th>
+              <th>Total Amount</th>
+              <th>Order Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (order of orders; track order.id) {
+              <tr>
+                <td class="order-id">{{ order.orderNumber }}</td>
+                <td class="customer-name">{{ order.customerName }}</td>
+                <td>{{ formatDate(order.createdAt) }}</td>
+                <td>{{ getItemCount(order) }}</td>
+                <td class="amount">
+                  {{ order.totalAmount | currency:'INR':'symbol':'1.2-2' }}
+                </td>
+                <td>
+                  <span class="status-badge">
+                    {{ order.status }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="openUpdateForm(order)"
+                    [disabled]="!canManageOrders || getAllowedStatuses(order.status).length === 0"
+                    title="Waiting for shared authentication"
+                  >
+                    Update Status
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="pagination">
+      <span>
+        Page {{ currentPage }} of {{ totalPages }} ·
+        {{ totalCount }} orders
+      </span>
+
+      <div>
+        <button
+          type="button"
+          (click)="goToPreviousPage()"
+          [disabled]="!hasPreviousPage || isLoading"
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          (click)="goToNextPage()"
+          [disabled]="!hasNextPage || isLoading"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
 
   @if (showForm && selectedOrder) {
     <section class="form-panel">
@@ -69,7 +130,8 @@
         <div>
           <h3>Update Order Status</h3>
           <p>
-            Order #{{ selectedOrder.id }} · {{ selectedOrder.customerName }}
+            {{ selectedOrder.orderNumber }} ·
+            {{ selectedOrder.customerName }}
           </p>
         </div>
 
@@ -85,20 +147,18 @@
 
       <form (ngSubmit)="updateOrderStatus()">
         <label class="status-input-label">
-          Order Status
+          New Order Status
 
-          <select
-            name="updatedStatus"
-            [(ngModel)]="updatedStatus"
-            required
-          >
-            <option value="Pending">Pending</option>
-            <option value="Processing">Processing</option>
-            <option value="Shipped">Shipped</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Cancelled">Cancelled</option>
+          <select name="updatedStatus" [(ngModel)]="updatedStatus" required>
+            @for (status of getAllowedStatuses(selectedOrder.status); track status) {
+              <option [value]="status">{{ status }}</option>
+            }
           </select>
         </label>
+
+        @if (formError) {
+          <p class="error-state" role="alert">{{ formError }}</p>
+        }
 
         <div class="form-actions">
           <button
@@ -112,86 +172,12 @@
           <button
             class="primary-button"
             type="submit"
-            [disabled]="!updatedStatus"
+            [disabled]="!canManageOrders || !updatedStatus || isSaving"
           >
-            Update Status
+            {{ isSaving ? 'Saving...' : 'Update Status' }}
           </button>
         </div>
       </form>
     </section>
   }
-
-  <section class="table-panel">
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Customer</th>
-            <th>Order Date</th>
-            <th>Items</th>
-            <th>Total Amount</th>
-            <th>Payment</th>
-            <th>Order Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          @for (order of filteredOrders; track order.id) {
-            <tr>
-              <td class="order-id">#{{ order.id }}</td>
-              <td class="customer-name">{{ order.customerName }}</td>
-              <td>{{ order.orderDate }}</td>
-              <td>{{ order.itemCount }}</td>
-              <td class="amount">₹{{ order.totalAmount }}</td>
-
-              <td>
-                <span
-                  class="payment-badge"
-                  [class.payment-pending]="order.paymentStatus === 'Pending'"
-                >
-                  {{ order.paymentStatus }}
-                </span>
-              </td>
-
-              <td>
-                <span
-                  class="status-badge"
-                  [class.status-processing]="order.orderStatus === 'Processing'"
-                  [class.status-shipped]="order.orderStatus === 'Shipped'"
-                  [class.status-delivered]="order.orderStatus === 'Delivered'"
-                  [class.status-cancelled]="order.orderStatus === 'Cancelled'"
-                >
-                  {{ order.orderStatus }}
-                </span>
-              </td>
-
-              <td>
-                <button
-                  class="edit-button"
-                  type="button"
-                  (click)="openUpdateForm(order)"
-                >
-                  Update Status
-                </button>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="8" class="empty-state">
-                <strong>No orders found</strong>
-                <span>Try changing your search or filters.</span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <p class="demo-note">
-    Demo mode: Order data and status updates are temporary and are not saved
-    to the backend.
-  </p>
 </section>

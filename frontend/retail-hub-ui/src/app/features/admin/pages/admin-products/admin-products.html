@@ -1,15 +1,32 @@
-
-<section class="products-page">
+﻿<section class="products-page">
   <div class="page-heading">
     <div>
       <h2>Product Management</h2>
       <p>Manage your store products, pricing, categories and stock.</p>
     </div>
 
-    <button class="primary-button" type="button" (click)="openAddForm()">
+    <button
+      class="primary-button"
+      type="button"
+      (click)="openAddForm()"
+      [disabled]="!canManageProducts"
+      title="Available when shared authentication is ready"
+    >
       + Add Product
     </button>
   </div>
+
+  @if (successMessage) {
+    <div class="success-message" role="status">
+      {{ successMessage }}
+    </div>
+  }
+
+  @if (lookupErrorMessage) {
+    <div class="error-message" role="alert">
+      {{ lookupErrorMessage }}
+    </div>
+  }
 
   <div class="toolbar">
     <input
@@ -17,16 +34,25 @@
       placeholder="Search products..."
       aria-label="Search products"
       [(ngModel)]="searchTerm"
+      (ngModelChange)="onFiltersChanged()"
     />
 
-    <select aria-label="Filter by category" [(ngModel)]="selectedCategory">
+    <select
+      aria-label="Filter by category"
+      [(ngModel)]="selectedCategory"
+      (ngModelChange)="onFiltersChanged()"
+    >
       <option value="">All Categories</option>
       @for (category of categories; track category.id) {
         <option [value]="category.id">{{ category.name }}</option>
       }
     </select>
 
-    <select aria-label="Filter by brand" [(ngModel)]="selectedBrand">
+    <select
+      aria-label="Filter by brand"
+      [(ngModel)]="selectedBrand"
+      (ngModelChange)="onFiltersChanged()"
+    >
       <option value="">All Brands</option>
       @for (brand of brands; track brand.id) {
         <option [value]="brand.id">{{ brand.name }}</option>
@@ -34,7 +60,7 @@
     </select>
 
     <span class="result-count">
-      {{ filteredProducts.length }} products
+      {{ totalCount }} products
     </span>
   </div>
 
@@ -49,9 +75,15 @@
           (click)="closeForm()"
           aria-label="Close form"
         >
-          ×
+          &times;
         </button>
       </div>
+
+      @if (formError) {
+        <div class="error-message" role="alert">
+          {{ formError }}
+        </div>
+      }
 
       <form (ngSubmit)="saveProduct()">
         <div class="form-fields">
@@ -85,7 +117,8 @@
               name="price"
               [(ngModel)]="formData.price"
               placeholder="Enter price"
-              min="0.01"
+              min="0"
+              max="999999.99"
               step="0.01"
               required
             />
@@ -133,7 +166,7 @@
               [(ngModel)]="formData.packagingType"
               placeholder="e.g. Bottle, Pouch, Packet"
               required
-              maxlength="50"
+              maxlength="60"
             />
           </label>
 
@@ -145,7 +178,7 @@
               [(ngModel)]="formData.packagingSize"
               placeholder="e.g. 1 kg, 500 ml"
               required
-              maxlength="50"
+              maxlength="60"
             />
           </label>
 
@@ -186,16 +219,15 @@
           <button
             class="primary-button"
             type="submit"
-            [disabled]="
-              !formData.name.trim() ||
-              !formData.price ||
-              !formData.brandId ||
-              !formData.categoryId ||
-              !formData.packagingType.trim() ||
-              !formData.packagingSize.trim()
-            "
+            [disabled]="!canManageProducts || isSaving"
           >
-            {{ isEditing ? 'Save Changes' : 'Create Product' }}
+            {{
+              isSaving
+                ? 'Saving...'
+                : isEditing
+                  ? 'Save Changes'
+                  : 'Create Product'
+            }}
           </button>
         </div>
       </form>
@@ -203,96 +235,149 @@
   }
 
   <section class="table-panel">
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Brand</th>
-            <th>Category</th>
-            <th>Packaging</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+    @if (isLoadingLookups) {
+      <p class="loading-message">Loading brand and category options...</p>
+    }
 
-        <tbody>
-          @for (product of filteredProducts; track product.id) {
+    @if (isLoading) {
+      <p class="loading-message">Loading products...</p>
+    } @else if (errorMessage) {
+      <div class="error-message" role="alert">
+        {{ errorMessage }}
+        <button class="secondary-button" type="button" (click)="loadProducts()">
+          Retry
+        </button>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table>
+          <thead>
             <tr>
-              <td>
-                <div class="product-info">
-                  <strong>{{ product.name }}</strong>
-                  <span>{{ product.description || 'No description' }}</span>
-                </div>
-              </td>
-
-              <td>{{ getBrandName(product.brandId) }}</td>
-
-              <td>{{ getCategoryName(product.categoryId) }}</td>
-
-              <td>
-                {{ product.packagingType }} · {{ product.packagingSize }}
-              </td>
-
-              <td class="price">₹{{ product.price.toFixed(2) }}</td>
-
-              <td>
-                <span
-                  class="stock-value"
-                  [class.low-stock]="
-                    product.stockQuantity <= product.reorderLevel
-                  "
-                  [class.out-of-stock]="product.stockQuantity === 0"
-                >
-                  {{ product.stockQuantity }}
-                </span>
-              </td>
-
-              <td>
-                <span
-                  class="status-badge"
-                  [class.inactive]="!product.isActive"
-                >
-                  {{ product.isActive ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-
-              <td>
-                <div class="action-buttons">
-                  <button
-                    class="edit-button"
-                    type="button"
-                    (click)="openEditForm(product)"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    class="toggle-button"
-                    type="button"
-                    (click)="toggleProductStatus(product)"
-                  >
-                    {{ product.isActive ? 'Deactivate' : 'Activate' }}
-                  </button>
-                </div>
-              </td>
+              <th>Product</th>
+              <th>Brand</th>
+              <th>Category</th>
+              <th>Packaging</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="8" class="empty-state">
-                <strong>No products found</strong>
-                <span>Try changing your filters or add a new product.</span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tbody>
+            @for (product of products; track product.id) {
+              <tr>
+                <td>
+                  <div class="product-info">
+                    <strong>{{ product.name }}</strong>
+                    <span>{{ product.description || 'No description' }}</span>
+                  </div>
+                </td>
+
+                <td>{{ getBrandName(product) }}</td>
+
+                <td>{{ getCategoryName(product) }}</td>
+
+                <td>
+                  {{ product.packagingType }} · {{ product.packagingSize }}
+                </td>
+
+                <td class="price">₹{{ product.price.toFixed(2) }}</td>
+
+                <td>
+                  <span
+                    class="stock-value"
+                    [class.low-stock]="
+                      product.stockQuantity <= product.reorderLevel
+                    "
+                    [class.out-of-stock]="product.stockQuantity === 0"
+                  >
+                    {{ product.stockQuantity }}
+                  </span>
+                </td>
+
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.inactive]="!product.isActive"
+                  >
+                    {{ product.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="action-buttons">
+                    <button
+                      class="edit-button"
+                      type="button"
+                      (click)="openEditForm(product)"
+                      [disabled]="!canManageProducts"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      class="toggle-button"
+                      type="button"
+                      (click)="deactivateProduct(product)"
+                      [disabled]="!canManageProducts || !product.isActive"
+                    >
+                      Deactivate
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="empty-state">
+                  <strong>No products found</strong>
+                  <span>
+                    @if (totalCount === 0) {
+                      No products are currently available in the database.
+                    } @else {
+                      Try changing your filters.
+                    }
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (totalCount > 0) {
+        <div class="pagination">
+          <span>
+            Page {{ currentPage }} of {{ totalPages }}
+            ({{ totalCount }} products)
+          </span>
+
+          <div class="pagination-actions">
+            <button
+              class="secondary-button"
+              type="button"
+              (click)="goToPreviousPage()"
+              [disabled]="!hasPreviousPage"
+            >
+              Previous
+            </button>
+
+            <button
+              class="secondary-button"
+              type="button"
+              (click)="goToNextPage()"
+              [disabled]="!hasNextPage"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      }
+    }
   </section>
 
   <p class="demo-note">
-    Demo mode: Product changes are temporary and are not saved to the backend.
+    Product data is loaded from the RetailHub backend. Write operations will
+    become available after shared authentication integration is ready.
   </p>
 </section>
