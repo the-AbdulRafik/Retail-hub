@@ -8,7 +8,10 @@ using RetailHub.Api.Configurations;
 using RetailHub.Api.Data;
 using RetailHub.Api.Entities;
 using RetailHub.Api.Middleware;
+using RetailHub.Api.Repositories;
+using RetailHub.Api.Repositories.Interfaces;
 using RetailHub.Api.Services.Auth;
+using RetailHub.Api.Services.Catalog;
 using RetailHub.Api.Services.Interfaces;
 using Scalar.AspNetCore;
 
@@ -127,7 +130,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi("v1", options =>
