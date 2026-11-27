@@ -1,0 +1,138 @@
+
+@if (product(); as product) {
+
+  <main class="details-page">
+
+    <a routerLink="/customer" class="back-link">
+      <span>←</span> Back to Shopping
+    </a>
+
+    <section class="product-details">
+
+      <div class="product-image-section">
+
+        @if (product.badge) {
+          <span class="product-badge">{{ product.badge }}</span>
+        }
+
+        <img
+          [src]="product.image"
+          [alt]="product.name"
+          class="product-image"
+        />
+
+      </div>
+
+      <div class="product-info">
+
+        <span class="product-category">
+          {{ product.category }}
+        </span>
+
+        <h1>{{ product.name }}</h1>
+
+        <div class="rating">
+          <span class="star">★</span>
+          <strong>{{ product.rating }}</strong>
+          <span class="rating-text">Customer rating</span>
+        </div>
+
+        <p class="description">
+          {{ product.description || 'Fresh quality product, carefully selected for your everyday shopping needs.' }}
+        </p>
+
+        <div class="price-section">
+
+          <span class="current-price">
+            ₹{{ product.price }}
+          </span>
+
+          @if (product.originalPrice > product.price) {
+            <span class="original-price">
+              ₹{{ product.originalPrice }}
+            </span>
+
+            <span class="discount">
+              {{ getDiscountPercentage(product.price, product.originalPrice) }}% OFF
+            </span>
+          }
+
+        </div>
+
+        <p class="unit-info">
+          Price per {{ product.unit }}
+        </p>
+
+        <div class="quantity-section">
+
+          <label>Quantity</label>
+
+          <div class="quantity-control">
+
+            <button
+              type="button"
+              (click)="decreaseQuantity()"
+              [disabled]="quantity() === 1"
+              aria-label="Decrease quantity"
+            >
+              −
+            </button>
+
+            <span>{{ quantity() }}</span>
+
+            <button
+              type="button"
+              (click)="increaseQuantity()"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="subtotal">
+          <span>Subtotal</span>
+          <strong>₹{{ product.price * quantity() }}</strong>
+        </div>
+
+        <button
+          type="button"
+          class="add-cart-button"
+          (click)="addToCart()"
+        >
+          Add to Cart
+        </button>
+
+        @if (message()) {
+          <p class="success-message" role="status">
+            {{ message() }}
+          </p>
+        }
+
+      </div>
+
+    </section>
+
+  </main>
+
+} @else {
+
+  <main class="not-found">
+
+    <div class="not-found-icon">🛍️</div>
+
+    <h2>Product Not Found</h2>
+
+    <p>
+      Sorry, this product is unavailable or the product link is invalid.
+    </p>
+
+    <a routerLink="/customer" class="back-button">
+      Back to Shopping
+    </a>
+
+  </main>
+
+}

@@ -1,4 +1,6 @@
 
+<!-- Hero Section -->
+
 <section class="hero">
 
   <div class="hero-content">
@@ -79,7 +81,8 @@
       <button
         class="category-card"
         [class.selected]="selectedCategory() === category.name"
-        (click)="selectCategory(category.name)">
+        (click)="selectCategory(category.name)"
+      >
 
         <span class="category-icon">
           {{ category.icon }}
@@ -129,11 +132,14 @@
     />
 
     @if (searchTerm()) {
+
       <button
         class="clear-btn"
-        (click)="searchTerm.set('')">
+        (click)="searchTerm.set('')"
+      >
         Clear
       </button>
+
     }
 
   </div>
@@ -186,9 +192,23 @@
             {{ product.unit }}
           </span>
 
+
+          <!-- View Product Details -->
+
+          <a
+            [routerLink]="['/customer/products', product.id]"
+            class="view-details-link"
+          >
+            View Details →
+          </a>
+
+
+          <!-- Temporary Add to Cart -->
+
           <button
             class="add-btn"
-            (click)="addToCart(product)">
+            (click)="addToCart(product)"
+          >
             + Add to Cart
           </button>
 
@@ -223,7 +243,9 @@
 
 <div
   class="cart-toast"
-  [class.visible]="message() !== ''">
+  [class.visible]="message() !== ''"
+  role="status"
+>
 
   {{ message() }}
 

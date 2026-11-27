@@ -481,3 +481,36 @@
     font-size: 21px;
   }
 }
+
+.view-details-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.view-details-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.view-details-link {
+  display: block;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.view-details-link:hover {
+  background: var(--color-primary);
+  color: white;
+}
