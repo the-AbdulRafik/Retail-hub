@@ -30,6 +30,9 @@ export interface ProductQueryParameters {
   search?: string;
   categoryId?: number;
   brandId?: number;
+  packagingType?: string;
+  minPrice?: number;
+  maxPrice?: number;
   inStockOnly?: boolean;
   includeInactive?: boolean;
   sortBy?: string;
@@ -73,6 +76,9 @@ export class ProductApiService {
         search: query.search ?? '',
         categoryId: query.categoryId ? String(query.categoryId) : '',
         brandId: query.brandId ? String(query.brandId) : '',
+        ...(query.packagingType ? { packagingType: query.packagingType } : {}),
+        ...(query.minPrice !== undefined ? { minPrice: String(query.minPrice) } : {}),
+        ...(query.maxPrice !== undefined ? { maxPrice: String(query.maxPrice) } : {}),
         inStockOnly: String(query.inStockOnly ?? false),
         includeInactive: String(query.includeInactive ?? false),
         sortBy: query.sortBy ?? 'name',

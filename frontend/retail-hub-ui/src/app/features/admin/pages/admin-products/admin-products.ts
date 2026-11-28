@@ -52,6 +52,9 @@ export class AdminProducts implements OnInit {
   protected searchTerm = '';
   protected selectedCategory = '';
   protected selectedBrand = '';
+  protected packagingType = '';
+  protected minPrice: number | null = null;
+  protected maxPrice: number | null = null;
   protected includeInactive = false;
 
   protected currentPage = 1;
@@ -113,6 +116,9 @@ export class AdminProducts implements OnInit {
               brandId: this.selectedBrand
                 ? Number(this.selectedBrand)
                 : undefined,
+              packagingType: this.packagingType.trim() || undefined,
+              minPrice: this.minPrice ?? undefined,
+              maxPrice: this.maxPrice ?? undefined,
               includeInactive: this.includeInactive,sortBy: 'name',
               sortOrder: 'asc',
             })
@@ -300,6 +306,7 @@ export class AdminProducts implements OnInit {
       !this.formData.categoryId ||
       !this.formData.packagingType.trim() ||
       !this.formData.packagingSize.trim() ||
+      this.formData.imageUrl.trim().length > 500 ||
       !Number.isFinite(price) ||
       price < 0 ||
       price > 9999999999999999.99 ||

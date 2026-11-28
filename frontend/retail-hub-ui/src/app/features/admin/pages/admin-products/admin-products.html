@@ -58,6 +58,35 @@
       }
     </select>
 
+    <input
+      type="search"
+      placeholder="Packaging type"
+      aria-label="Filter by packaging type"
+      maxlength="60"
+      [(ngModel)]="packagingType"
+      (ngModelChange)="onFiltersChanged()"
+    />
+
+    <input
+      type="number"
+      placeholder="Minimum price"
+      aria-label="Minimum price"
+      min="0"
+      step="0.01"
+      [(ngModel)]="minPrice"
+      (ngModelChange)="onFiltersChanged()"
+    />
+
+    <input
+      type="number"
+      placeholder="Maximum price"
+      aria-label="Maximum price"
+      min="0"
+      step="0.01"
+      [(ngModel)]="maxPrice"
+      (ngModelChange)="onFiltersChanged()"
+    />
+
     <label><input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="onFiltersChanged()" /> Include inactive</label>
     <span>
       {{ totalCount }} products
@@ -131,6 +160,7 @@
               name="imageUrl"
               [(ngModel)]="formData.imageUrl"
               placeholder="https://example.com/image.jpg"
+              maxlength="500"
             />
           </label>
 
