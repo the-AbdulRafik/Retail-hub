@@ -11,7 +11,7 @@ public sealed class CreateProductRequest
     [StringLength(1000)]
     public string? Description { get; set; }
 
-    [Range(0, 999999.99)]
+    [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal Price { get; set; }
 
     [Url]
@@ -48,7 +48,7 @@ public sealed class UpdateProductRequest
     [StringLength(1000)]
     public string? Description { get; set; }
 
-    [Range(0, 999999.99)]
+    [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal Price { get; set; }
 
     [Url]
@@ -113,10 +113,10 @@ public sealed class ProductQueryParameters : PaginationQuery
     [StringLength(60)]
     public string? PackagingType { get; set; }
 
-    [Range(0, 999999.99)]
+    [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal? MinPrice { get; set; }
 
-    [Range(0, 999999.99)]
+    [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal? MaxPrice { get; set; }
 
     public bool InStockOnly { get; set; }

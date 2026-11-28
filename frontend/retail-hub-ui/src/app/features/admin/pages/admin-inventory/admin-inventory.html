@@ -1,0 +1,172 @@
+<section class="inventory-page">
+  <header class="page-header">
+    <div>
+      <h1>Inventory Management</h1>
+      <p>Monitor product stock levels and reorder requirements.</p>
+    </div>
+  </header>
+
+  @if (successMessage) {
+    <div class="success-message" role="status">
+      {{ successMessage }}
+    </div>
+  }
+
+  <div class="inventory-toolbar">
+    <input
+      type="search"
+      placeholder="Search products..."
+      [(ngModel)]="searchTerm"
+      (keyup.enter)="onFiltersChanged()"
+      aria-label="Search inventory"
+    />
+
+    <label class="filter-option">
+      <input
+        type="checkbox"
+        [(ngModel)]="lowStockOnly"
+        (change)="onFiltersChanged()"
+      />
+      Low stock only
+    </label>
+
+    <button type="button" (click)="onFiltersChanged()" [disabled]="isLoading">
+      Search
+    </button>
+  </div>
+
+  @if (isLoading) {
+    <div class="loading-state" role="status">
+      Loading inventory...
+    </div>
+  } @else if (errorMessage) {
+    <div class="error-state" role="alert">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="loadInventory()">Retry</button>
+    </div>
+  } @else if (inventory.length === 0) {
+    <div class="empty-state">
+      <h2>No inventory records found</h2>
+      <p>Try changing your search or stock filter.</p>
+    </div>
+  } @else {
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Brand</th>
+            <th>Category</th>
+            <th>Packaging</th>
+            <th>Stock</th>
+            <th>Reorder Level</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (item of inventory; track item.productId) {
+            <tr>
+              <td>{{ item.productName }}</td>
+              <td>{{ item.brandName }}</td>
+              <td>{{ item.categoryName }}</td>
+              <td>{{ item.packagingType }} - {{ item.packagingSize }}</td>
+              <td>{{ item.stockQuantity }}</td>
+              <td>{{ item.reorderLevel }}</td>
+              <td>
+                <span
+                  class="stock-status"
+                  [class.low-stock]="item.isLowStock"
+                  [class.out-of-stock]="item.stockQuantity === 0"
+                >
+                  {{ getStockStatus(item) }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  (click)="openUpdateForm(item)"
+                  [disabled]="!canManageInventory"
+                  title="Update stock"
+                >
+                  Update
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <span>
+        Page {{ currentPage }} of {{ totalPages }} ·
+        {{ totalCount }} records
+      </span>
+
+      <div>
+        <button
+          type="button"
+          (click)="goToPreviousPage()"
+          [disabled]="!hasPreviousPage || isLoading"
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          (click)="goToNextPage()"
+          [disabled]="!hasNextPage || isLoading"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (showForm && selectedItem) {
+    <div class="inventory-form-overlay">
+      <form class="inventory-form" (ngSubmit)="updateStock()">
+        <h2>Update Inventory</h2>
+        <p>{{ selectedItem.productName }}</p>
+
+        <label for="stockQuantity">Stock Quantity</label>
+        <input
+          id="stockQuantity"
+          type="number"
+          min="0"
+          step="1"
+          name="stockQuantity"
+          [(ngModel)]="updatedQuantity"
+          required
+        />
+
+        <label for="reorderLevel">Reorder Level</label>
+        <input
+          id="reorderLevel"
+          type="number"
+          min="0"
+          step="1"
+          name="reorderLevel"
+          [(ngModel)]="updatedReorderLevel"
+          required
+        />
+
+        @if (formError) {
+          <p class="error-state" role="alert">{{ formError }}</p>
+        }
+
+        <div class="form-actions">
+          <button type="button" (click)="closeForm()">Cancel</button>
+          <button
+            type="submit"
+            [disabled]="!canManageInventory || isSaving"
+          >
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</section>

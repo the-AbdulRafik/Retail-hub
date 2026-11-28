@@ -1,0 +1,182 @@
+<section class="orders-page">
+  <div class="page-heading">
+    <div>
+      <h2>Orders Management</h2>
+      <p>View customer orders and manage order statuses.</p>
+    </div>
+  </div>
+
+  @if (successMessage) {
+    <div class="success-message" role="status">
+      {{ successMessage }}
+    </div>
+  }
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search order number or customer..."
+      aria-label="Search orders"
+      [(ngModel)]="searchTerm"
+      (keyup.enter)="onFiltersChanged()"
+    />
+
+    <select
+      aria-label="Filter by order status"
+      [(ngModel)]="selectedStatus"
+      (change)="onFiltersChanged()"
+    >
+      <option value="">All Order Statuses</option>
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ status }}</option>
+      }
+    </select>
+
+    <button type="button" (click)="onFiltersChanged()" [disabled]="isLoading">
+      Search
+    </button>
+  </div>
+
+  @if (isLoading) {
+    <div class="loading-state" role="status">Loading orders...</div>
+  } @else if (errorMessage) {
+    <div class="error-state" role="alert">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="loadOrders()">Retry</button>
+    </div>
+  } @else if (orders.length === 0) {
+    <div class="empty-state">
+      <strong>No orders found</strong>
+      <p>Orders will appear here when customers place them.</p>
+    </div>
+  } @else {
+    <section class="table-panel">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Order Number</th>
+              <th>Customer</th>
+              <th>Order Date</th>
+              <th>Items</th>
+              <th>Total Amount</th>
+              <th>Order Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (order of orders; track order.id) {
+              <tr>
+                <td class="order-id">{{ order.orderNumber }}</td>
+                <td class="customer-name">{{ order.customerName }}</td>
+                <td>{{ formatDate(order.createdAt) }}</td>
+                <td>{{ getItemCount(order) }}</td>
+                <td class="amount">
+                  {{ order.totalAmount | currency:'INR':'symbol':'1.2-2' }}
+                </td>
+                <td>
+                  <span class="status-badge">
+                    {{ order.status }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    class="edit-button"
+                    type="button"
+                    (click)="openUpdateForm(order)"
+                    [disabled]="!canManageOrders || getAllowedStatuses(order.status).length === 0"
+                  >
+                    Update Status
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="pagination">
+      <span>
+        Page {{ currentPage }} of {{ totalPages }} ·
+        {{ totalCount }} orders
+      </span>
+
+      <div>
+        <button
+          type="button"
+          (click)="goToPreviousPage()"
+          [disabled]="!hasPreviousPage || isLoading"
+        >
+          Previous
+        </button>
+
+        <button
+          type="button"
+          (click)="goToNextPage()"
+          [disabled]="!hasNextPage || isLoading"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (showForm && selectedOrder) {
+    <section class="form-panel">
+      <div class="form-heading">
+        <div>
+          <h3>Update Order Status</h3>
+          <p>
+            {{ selectedOrder.orderNumber }} ·
+            {{ selectedOrder.customerName }}
+          </p>
+        </div>
+
+        <button
+          class="close-button"
+          type="button"
+          (click)="closeForm()"
+          aria-label="Close form"
+        >
+          ×
+        </button>
+      </div>
+
+      <form (ngSubmit)="updateOrderStatus()">
+        <label class="status-input-label">
+          New Order Status
+
+          <select name="updatedStatus" [(ngModel)]="updatedStatus" required>
+            @for (status of getAllowedStatuses(selectedOrder.status); track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select>
+        </label>
+
+        @if (formError) {
+          <p class="error-state" role="alert">{{ formError }}</p>
+        }
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            (click)="closeForm()"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="primary-button"
+            type="submit"
+            [disabled]="!canManageOrders || !updatedStatus || isSaving"
+          >
+            {{ isSaving ? 'Saving...' : 'Update Status' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+</section>
