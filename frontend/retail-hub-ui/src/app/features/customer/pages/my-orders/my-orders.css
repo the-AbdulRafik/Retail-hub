@@ -6,6 +6,7 @@ h1{margin:18px 0 24px;color:var(--color-text);font-size:2rem}
 .filters label{display:grid;flex:1;min-width:190px;gap:6px;color:var(--color-text-muted);font-size:.875rem;font-weight:600}
 .filters input,.filters select{height:42px;padding:0 10px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:#fff}
 .filters button,.state-card button{height:42px;padding:0 18px;border:0;border-radius:var(--radius-sm);background:var(--color-primary);color:#fff;font-weight:700;cursor:pointer}
+.filters .reset-filter-btn{border:1px solid var(--color-border);background:#fff;color:var(--color-text)}
 .order-list{display:grid;gap:14px}
 .order-card,.state-card{padding:20px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
 .order-heading{display:flex;justify-content:space-between;align-items:start;gap:16px}

@@ -6,6 +6,7 @@ import { EMPTY, Subject, catchError, map, merge, switchMap, tap } from 'rxjs';
 import { extractApiErrorMessage } from '../../../../core/models/api-error.models';
 import { ORDER_STATUSES, OrderResponse, OrderStatus } from '../../models/order.model';
 import { OrderService } from '../../services/order.service';
+import { normalizeUtcDate } from '../../utils/customer.utils';
 
 const TRACKED_STATUSES = ORDER_STATUSES.filter(
   (status): status is Exclude<OrderStatus, 'Cancelled'> => status !== 'Cancelled',
@@ -78,6 +79,8 @@ export class OrderDetails {
   isCurrent(index: number): boolean {
     return this.statusIndex() === index;
   }
+
+  readonly normalizeUtcDate = normalizeUtcDate;
 
   retry(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));

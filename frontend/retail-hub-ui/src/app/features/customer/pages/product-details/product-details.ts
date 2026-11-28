@@ -22,6 +22,7 @@ export class ProductDetails {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly quantity = signal(1);
+  readonly cartItemCount = this.cartService.itemCount;
   readonly message = signal('');
   readonly messageType = signal<'success' | 'error'>('success');
   readonly product = signal<Product | null>(null);
@@ -82,9 +83,13 @@ export class ProductDetails {
   addToCart(): void {
     const product = this.product();
     const quantity = this.quantity();
-    if (!product || quantity < 1 || quantity > product.stockQuantity) {
+    if (!product || !product.isActive || quantity < 1 || quantity > product.stockQuantity) {
       this.messageType.set('error');
-      this.message.set('Choose a quantity that is available in stock.');
+      this.message.set(
+        product && !product.isActive
+          ? 'This product is currently unavailable.'
+          : 'Choose a quantity that is available in stock.'
+      );
       return;
     }
 

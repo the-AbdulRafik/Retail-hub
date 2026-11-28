@@ -130,13 +130,15 @@
       <p>Find your everyday essentials in one place.</p>
     </div>
 
-    <div class="product-count">
-      {{ totalCount() }} products
+    <div class="section-actions">
+      <div class="product-count">
+        {{ totalCount() }} products
+      </div>
+      <a routerLink="/customer/cart" class="header-action-link">
+        Cart ({{ cartItemCount() }})
+      </a>
+      <a routerLink="/customer/orders" class="header-action-link">My orders</a>
     </div>
-    <a routerLink="/customer/cart" class="view-details-link">
-      Cart ({{ cartItemCount() }})
-    </a>
-    <a routerLink="/customer/orders" class="view-details-link">My orders</a>
 
   </div>
 
@@ -189,6 +191,7 @@
         step="0.01"
         [value]="minPriceInput()"
         (input)="updateMinPrice($event)"
+        (keydown.enter)="applyPriceFilter()"
       />
     </label>
     <label for="max-price">
@@ -202,6 +205,7 @@
         step="0.01"
         [value]="maxPriceInput()"
         (input)="updateMaxPrice($event)"
+        (keydown.enter)="applyPriceFilter()"
       />
     </label>
     <button class="reset-btn" type="button" (click)="applyPriceFilter()">Apply price</button>
@@ -211,7 +215,7 @@
 
     <label>
       Sort
-      <select (change)="updateSort($event)">
+      <select [value]="sortBy() + ':' + sortOrder()" (change)="updateSort($event)">
         <option value="name:asc">Name: A-Z</option>
         <option value="name:desc">Name: Z-A</option>
         <option value="price:asc">Price: Low-High</option>

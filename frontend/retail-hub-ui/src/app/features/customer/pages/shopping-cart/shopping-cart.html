@@ -1,4 +1,4 @@
-<main class="cart-page">
+<section class="cart-page">
   <a routerLink="/customer" class="continue-link">← Continue shopping</a>
   <h1>Shopping Cart</h1>
 
@@ -32,26 +32,50 @@
               @if (item.packagingDetails) {
                 <p>{{ item.packagingDetails }}</p>
               }
-              <p>Unit price: {{ item.unitPrice | number:'1.2-2' }}</p>
-              <label [for]="'quantity-' + item.productId">Quantity</label>
-              <input
-                [id]="'quantity-' + item.productId"
-                type="number"
-                min="1"
-                [attr.max]="item.maxStock ?? null"
-                [value]="item.quantity"
-                [disabled]="item.maxStock === 0"
-                (change)="changeQuantity(item, $event)"
-              />
-              @if (item.maxStock !== undefined) {
-                <small>{{ item.maxStock > 0 ? item.maxStock + ' available' : 'Currently unavailable' }}</small>
-              }
+              <p>Unit price: {{ effectiveUnitPrice(item) | number:'1.2-2' }}</p>
+              <div class="quantity-row">
+                <label [for]="'quantity-' + item.productId">Quantity</label>
+                <div class="quantity-stepper">
+                  <button
+                    type="button"
+                    class="step-button"
+                    aria-label="Decrease quantity"
+                    [disabled]="isItemUnavailable(item) || item.quantity <= 1"
+                    (click)="decreaseQuantity(item)"
+                  >
+                    −
+                  </button>
+                  <input
+                    [id]="'quantity-' + item.productId"
+                    type="number"
+                    min="1"
+                    [attr.max]="effectiveMaxStock(item) ?? null"
+                    [value]="item.quantity"
+                    [disabled]="isItemUnavailable(item)"
+                    (change)="changeQuantity(item, $event)"
+                  />
+                  <button
+                    type="button"
+                    class="step-button"
+                    aria-label="Increase quantity"
+                    [disabled]="isItemUnavailable(item) || (effectiveMaxStock(item) !== undefined && item.quantity >= effectiveMaxStock(item)!)"
+                    (click)="increaseQuantity(item)"
+                  >
+                    +
+                  </button>
+                </div>
+                @if (effectiveMaxStock(item) !== undefined) {
+                  <small class="stock-hint" [class.unavailable]="isItemUnavailable(item)">
+                    {{ !isItemUnavailable(item) ? effectiveMaxStock(item) + ' available' : 'Currently unavailable' }}
+                  </small>
+                }
+              </div>
               <button type="button" class="remove-button" (click)="removeItem(item.productId)">
                 Remove
               </button>
             </div>
 
-            <strong class="line-total">{{ item.subtotal | number:'1.2-2' }}</strong>
+            <strong class="line-total">{{ effectiveLineTotal(item) | number:'1.2-2' }}</strong>
           </article>
         }
       </section>
@@ -67,7 +91,7 @@
           <strong>{{ total() | number:'1.2-2' }}</strong>
         </div>
         <p>Discounts and delivery charges are not supported by the current cart contract.</p>
-        @if (isEmpty()) {
+        @if (isEmpty() || hasStockIssue()) {
           <button type="button" disabled>Proceed to checkout</button>
         } @else {
           <a routerLink="/customer/checkout" class="checkout-link">Proceed to checkout</a>
@@ -75,4 +99,4 @@
       </aside>
     </div>
   }
-</main>
+</section>

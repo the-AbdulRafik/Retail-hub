@@ -105,4 +105,28 @@ describe('CustomerHome', () => {
     expect(component.priceFilterError()).toBe('Minimum price must not exceed maximum price.');
     expect(requestedFilters).toHaveLength(initialRequestCount);
   });
+
+  it('loads products automatically on initialization and resets the sort dropdown', () => {
+    expect(requestedFilters.length).toBeGreaterThanOrEqual(1);
+    expect(fixture.componentInstance.loading()).toBe(false);
+
+    const sortSelect = fixture.nativeElement.querySelector(
+      '.filter-bar select[value], .filter-bar label:nth-of-type(4) select'
+    ) as HTMLSelectElement | null;
+    const selects = fixture.nativeElement.querySelectorAll('.filter-bar select') as NodeListOf<HTMLSelectElement>;
+    const activeSortSelect = sortSelect ?? selects[1];
+    activeSortSelect.value = 'price:desc';
+    activeSortSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.sortBy()).toBe('price');
+    expect(fixture.componentInstance.sortOrder()).toBe('desc');
+
+    fixture.componentInstance.resetFilters();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.sortBy()).toBe('name');
+    expect(fixture.componentInstance.sortOrder()).toBe('asc');
+    expect(activeSortSelect.value).toBe('name:asc');
+  });
 });

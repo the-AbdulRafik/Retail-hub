@@ -1,4 +1,4 @@
-<main class="checkout-page">
+<section class="checkout-page">
   <a routerLink="/customer/cart" class="back-link">← Back to cart</a>
   <h1>Checkout</h1>
 
@@ -23,9 +23,9 @@
               @if (item.packagingDetails) {
                 <p>{{ item.packagingDetails }}</p>
               }
-              <p>{{ item.quantity }} × {{ item.unitPrice | number:'1.2-2' }}</p>
+              <p>{{ item.quantity }} × {{ effectiveUnitPrice(item) | number:'1.2-2' }}</p>
             </div>
-            <strong>{{ item.subtotal | number:'1.2-2' }}</strong>
+            <strong>{{ effectiveLineTotal(item) | number:'1.2-2' }}</strong>
           </article>
         }
         <p class="contract-note">
@@ -45,10 +45,10 @@
           <strong>{{ total() | number:'1.2-2' }}</strong>
         </div>
         <p>Final prices and totals are calculated by the server when the order is placed.</p>
-        <button type="button" [disabled]="submitting() || isEmpty()" (click)="placeOrder()">
+        <button type="button" [disabled]="submitting() || isEmpty() || hasStockIssue()" (click)="placeOrder()">
           {{ submitting() ? 'Placing order...' : 'Place order' }}
         </button>
       </aside>
     </div>
   }
-</main>
+</section>
