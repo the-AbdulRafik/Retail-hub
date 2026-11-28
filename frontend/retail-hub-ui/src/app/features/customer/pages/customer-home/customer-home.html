@@ -178,6 +178,33 @@
         }
       </select>
     </label>
+    <label for="min-price">
+      Minimum price
+      <input
+        id="min-price"
+        class="reset-btn"
+        type="number"
+        min="0"
+        max="999999.99"
+        step="0.01"
+        [value]="minPriceInput()"
+        (input)="updateMinPrice($event)"
+      />
+    </label>
+    <label for="max-price">
+      Maximum price
+      <input
+        id="max-price"
+        class="reset-btn"
+        type="number"
+        min="0"
+        max="999999.99"
+        step="0.01"
+        [value]="maxPriceInput()"
+        (input)="updateMaxPrice($event)"
+      />
+    </label>
+    <button class="reset-btn" type="button" (click)="applyPriceFilter()">Apply price</button>
     @if (brandError()) {
       <p class="catalog-error" role="alert">{{ brandError() }}</p>
     }
@@ -201,6 +228,9 @@
 
     <button class="reset-btn" type="button" (click)="resetFilters()">Reset filters</button>
   </div>
+  @if (priceFilterError()) {
+    <p class="catalog-error" role="alert">{{ priceFilterError() }}</p>
+  }
 
   @if (loading()) {
     <div class="loading-state" role="status">Loading products...</div>

@@ -2,13 +2,10 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { EMPTY, Subject, catchError, switchMap, tap } from 'rxjs';
 import { extractApiErrorMessage } from '../../../../core/models/api-error.models';
 import { PaginatedResponse } from '../../../../core/models/pagination.models';
-import {
-  ORDER_STATUSES,
-  OrderResponse,
-  OrderStatus,
-} from '../../models/order.model';
+import { ORDER_STATUSES, OrderResponse, OrderStatus } from '../../models/order.model';
 import { OrderService } from '../../services/order.service';
 
 @Component({
@@ -21,6 +18,7 @@ import { OrderService } from '../../services/order.service';
 export class MyOrders {
   private readonly orderService = inject(OrderService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly orderRequests = new Subject<void>();
 
   readonly statuses = ORDER_STATUSES;
   readonly orders = signal<readonly OrderResponse[]>([]);
@@ -35,6 +33,37 @@ export class MyOrders {
   readonly errorMessage = signal('');
 
   constructor() {
+    this.orderRequests
+      .pipe(
+        switchMap(() =>
+          this.orderService
+            .getMyOrders({
+              page: this.page(),
+              pageSize: this.pageSize,
+              status: this.status() || undefined,
+              search: this.search().trim() || undefined,
+            })
+            .pipe(
+              tap((response: PaginatedResponse<OrderResponse>) => {
+                this.orders.set(response.items);
+                this.totalPages.set(response.totalPages);
+                this.hasPreviousPage.set(response.hasPreviousPage);
+                this.hasNextPage.set(response.hasNextPage);
+                this.loading.set(false);
+              }),
+              catchError((error: unknown) => {
+                this.orders.set([]);
+                this.loading.set(false);
+                this.errorMessage.set(
+                  extractApiErrorMessage(error, 'Unable to load your orders. Please try again.'),
+                );
+                return EMPTY;
+              }),
+            ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
     this.loadOrders();
   }
 
@@ -66,29 +95,6 @@ export class MyOrders {
   loadOrders(): void {
     this.loading.set(true);
     this.errorMessage.set('');
-    this.orderService
-      .getMyOrders({
-        page: this.page(),
-        pageSize: this.pageSize,
-        status: this.status() || undefined,
-        search: this.search().trim() || undefined,
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (response: PaginatedResponse<OrderResponse>) => {
-          this.orders.set(response.items);
-          this.totalPages.set(response.totalPages);
-          this.hasPreviousPage.set(response.hasPreviousPage);
-          this.hasNextPage.set(response.hasNextPage);
-          this.loading.set(false);
-        },
-        error: (error: unknown) => {
-          this.orders.set([]);
-          this.loading.set(false);
-          this.errorMessage.set(
-            extractApiErrorMessage(error, 'Unable to load your orders. Please try again.')
-          );
-        },
-      });
+    this.orderRequests.next();
   }
 }

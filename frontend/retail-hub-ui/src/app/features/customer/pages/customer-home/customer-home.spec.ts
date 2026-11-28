@@ -8,14 +8,17 @@ import { CustomerHome } from './customer-home';
 describe('CustomerHome', () => {
   let fixture: ComponentFixture<CustomerHome>;
   let requestedSearches: string[];
+  let requestedFilters: ProductFilters[];
 
   beforeEach(async () => {
     requestedSearches = [];
+    requestedFilters = [];
     const productService = {
       getCategories: () => of([]),
       getBrands: () => of([]),
       getProducts: (filters: ProductFilters) => {
         requestedSearches.push(filters.search ?? '');
+        requestedFilters.push(filters);
         return of({
           items: [],
           currentPage: filters.page,
@@ -38,9 +41,7 @@ describe('CustomerHome', () => {
   });
 
   it('cancels pending searches when clearing or resetting the search', async () => {
-    const input = fixture.nativeElement.querySelector(
-      'input[type="search"]'
-    ) as HTMLInputElement;
+    const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
 
     input.value = 'stale clear query';
     input.dispatchEvent(new Event('input'));
@@ -62,10 +63,46 @@ describe('CustomerHome', () => {
   });
 
   it('labels the storefront search input accessibly', () => {
-    const input = fixture.nativeElement.querySelector(
-      'input[type="search"]'
-    ) as HTMLInputElement;
+    const input = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
 
     expect(input.getAttribute('aria-label')).toBe('Search products');
+  });
+
+  it('applies valid price bounds alongside existing catalog filters', () => {
+    const component = fixture.componentInstance;
+    component.searchTerm.set('bread');
+    component.selectedBrand.set(4);
+    component.selectCategory(2);
+    component.minPriceInput.set('1.50');
+    component.maxPriceInput.set('12');
+
+    component.applyPriceFilter();
+
+    expect(requestedFilters.at(-1)).toMatchObject({
+      search: 'bread',
+      categoryId: 2,
+      brandId: 4,
+      minPrice: 1.5,
+      maxPrice: 12,
+      page: 1,
+    });
+    expect(component.priceFilterError()).toBe('');
+  });
+
+  it('rejects negative values and minimum prices greater than maximum prices', () => {
+    const component = fixture.componentInstance;
+    const initialRequestCount = requestedFilters.length;
+
+    component.minPriceInput.set('-1');
+    component.applyPriceFilter();
+
+    expect(component.priceFilterError()).toBe('Prices must be between 0 and 999999.99.');
+
+    component.minPriceInput.set('10');
+    component.maxPriceInput.set('5');
+    component.applyPriceFilter();
+
+    expect(component.priceFilterError()).toBe('Minimum price must not exceed maximum price.');
+    expect(requestedFilters).toHaveLength(initialRequestCount);
   });
 });
