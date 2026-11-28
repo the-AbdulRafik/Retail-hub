@@ -1,14 +1,11 @@
 <section class="categories-page">
   <div class="page-heading">
-    <div>
-      <h2>Category Management</h2>
-      <p>Organize and manage your store product categories.</p>
-    </div>
+    <p class="page-subtitle">Manage your store categories and product groupings.</p>
 
     <button
       class="primary-button"
       type="button"
-      [disabled]="!canManageCategories"
+      [disabled]="isSaving"
       (click)="openAddForm()"
     >
       + Add Category
@@ -35,22 +32,28 @@
       [(ngModel)]="searchTerm"
     />
 
-    <label><input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="loadCategories()" /> Include inactive</label>
-    <span>
-      {{ filteredCategories.length }} categories
-    </span>
+    <div class="toolbar-meta">
+      <label class="checkbox-filter">
+        <input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="loadCategories()" />
+        Include inactive
+      </label>
+      <span class="result-count">
+        {{ filteredCategories.length }} categories
+      </span>
+    </div>
   </div>
 
   @if (showForm) {
     <section class="form-panel">
       <div class="form-heading">
-        <h3>{{ isEditing ? 'Edit Category' : 'Add New Category' }}</h3>
+        <h2>{{ isEditing ? 'Edit Category' : 'Add New Category' }}</h2>
 
         <button
           class="close-button"
           type="button"
-          (click)="closeForm()"
           aria-label="Close form"
+          [disabled]="isSaving"
+          (click)="closeForm()"
         >
           &times;
         </button>
@@ -83,7 +86,7 @@
         </div>
 
         @if (formError) {
-          <p class="error-message" role="alert">{{ formError }}</p>
+          <p class="error-message form-alert" role="alert">{{ formError }}</p>
         }
 
         <div class="form-actions">
@@ -99,7 +102,7 @@
           <button
             class="primary-button"
             type="submit"
-            [disabled]="isSaving || !canManageCategories"
+            [disabled]="isSaving"
           >
             {{ isSaving ? 'Saving...' : 'Save Category' }}
           </button>
@@ -110,7 +113,7 @@
 
   @if (isLoading) {
     <section class="table-panel">
-      <p class="empty-state">Loading categories...</p>
+      <p class="loading-state" role="status">Loading categories...</p>
     </section>
   } @else if (errorMessage && categories.length === 0) {
     <section class="table-panel">
@@ -119,7 +122,7 @@
         <span>{{ errorMessage }}</span>
 
         <button
-          class="secondary-button"
+          class="secondary-button retry-button"
           type="button"
           (click)="loadCategories()"
         >
@@ -146,7 +149,7 @@
                 <td class="category-name">{{ category.name }}</td>
 
                 <td class="description">
-                  {{ category.description || '—' }}
+                  {{ category.description || '-' }}
                 </td>
 
                 <td>
@@ -163,13 +166,31 @@
                     <button
                       class="edit-button"
                       type="button"
-                      [disabled]="!canManageCategories || isSaving"
+                      [disabled]="isSaving"
                       (click)="openEditForm(category)"
                     >
                       Edit
                     </button>
 
-                    @if (category.isActive) { <button class="toggle-button" type="button" [disabled]="!canManageCategories || isSaving" (click)="deactivateCategory(category)">Deactivate</button> } @else { <button class="toggle-button" type="button" [disabled]="!canManageCategories || isSaving" (click)="reactivateCategory(category)">Reactivate</button> }
+                    @if (category.isActive) {
+                      <button
+                        class="toggle-button"
+                        type="button"
+                        [disabled]="isSaving"
+                        (click)="deactivateCategory(category)"
+                      >
+                        Deactivate
+                      </button>
+                    } @else {
+                      <button
+                        class="toggle-button reactivate"
+                        type="button"
+                        [disabled]="isSaving"
+                        (click)="reactivateCategory(category)"
+                      >
+                        Reactivate
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -192,6 +213,4 @@
       </div>
     </section>
   }
-
-  <p class="demo-note">Category data is loaded from the RetailHub backend.</p>
 </section>

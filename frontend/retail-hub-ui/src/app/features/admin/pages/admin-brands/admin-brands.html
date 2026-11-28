@@ -1,15 +1,11 @@
-
 <section class="brands-page">
   <div class="page-heading">
-    <div>
-      <h2>Brand Management</h2>
-      <p>Manage your store brands and their information.</p>
-    </div>
+    <p class="page-subtitle">Manage your store brands and their information.</p>
 
     <button
       class="primary-button"
       type="button"
-      [disabled]="!canManageBrands"
+      [disabled]="isSaving"
       (click)="openCreateForm()"
     >
       + Add Brand
@@ -36,21 +32,27 @@
       [(ngModel)]="searchTerm"
     />
 
-    <label><input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="loadBrands()" /> Include inactive</label>
-    <span>
-      {{ filteredBrands.length }} brands
-    </span>
+    <div class="toolbar-meta">
+      <label class="checkbox-filter">
+        <input type="checkbox" [(ngModel)]="includeInactive" (ngModelChange)="loadBrands()" />
+        Include inactive
+      </label>
+      <span class="result-count">
+        {{ filteredBrands.length }} brands
+      </span>
+    </div>
   </div>
 
   @if (isFormOpen) {
     <section class="form-panel">
       <div class="form-heading">
-        <h3>{{ editingBrandId === null ? 'Add Brand' : 'Edit Brand' }}</h3>
+        <h2>{{ editingBrandId === null ? 'Add Brand' : 'Edit Brand' }}</h2>
 
         <button
           class="close-button"
           type="button"
           aria-label="Close form"
+          [disabled]="isSaving"
           (click)="closeForm()"
         >
           &times;
@@ -84,7 +86,7 @@
         </div>
 
         @if (formError) {
-          <p class="error-message" role="alert">{{ formError }}</p>
+          <p class="error-message form-alert" role="alert">{{ formError }}</p>
         }
 
         <div class="form-actions">
@@ -100,7 +102,7 @@
           <button
             class="primary-button"
             type="submit"
-            [disabled]="isSaving || !canManageBrands"
+            [disabled]="isSaving"
           >
             {{ isSaving ? 'Saving...' : 'Save Brand' }}
           </button>
@@ -111,7 +113,7 @@
 
   @if (isLoading) {
     <section class="table-panel">
-      <p class="empty-state">Loading brands...</p>
+      <p class="loading-state" role="status">Loading brands...</p>
     </section>
   } @else if (errorMessage && brands.length === 0) {
     <section class="table-panel">
@@ -120,7 +122,7 @@
         <span>{{ errorMessage }}</span>
 
         <button
-          class="secondary-button"
+          class="secondary-button retry-button"
           type="button"
           (click)="loadBrands()"
         >
@@ -147,7 +149,7 @@
                 <td class="brand-name">{{ brand.name }}</td>
 
                 <td class="description">
-                  {{ brand.description || '—' }}
+                  {{ brand.description || '-' }}
                 </td>
 
                 <td>
@@ -164,13 +166,31 @@
                     <button
                       class="edit-button"
                       type="button"
-                      [disabled]="!canManageBrands || isSaving"
+                      [disabled]="isSaving"
                       (click)="openEditForm(brand)"
                     >
                       Edit
                     </button>
 
-                    @if (brand.isActive) { <button class="toggle-button" type="button" [disabled]="!canManageBrands || isSaving" (click)="deactivateBrand(brand)">Deactivate</button> } @else { <button class="toggle-button" type="button" [disabled]="!canManageBrands || isSaving" (click)="reactivateBrand(brand)">Reactivate</button> }
+                    @if (brand.isActive) {
+                      <button
+                        class="toggle-button"
+                        type="button"
+                        [disabled]="isSaving"
+                        (click)="deactivateBrand(brand)"
+                      >
+                        Deactivate
+                      </button>
+                    } @else {
+                      <button
+                        class="toggle-button reactivate"
+                        type="button"
+                        [disabled]="isSaving"
+                        (click)="reactivateBrand(brand)"
+                      >
+                        Reactivate
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -193,6 +213,4 @@
       </div>
     </section>
   }
-
-  <p class="demo-note">Brand data is loaded from the RetailHub backend.</p>
 </section>

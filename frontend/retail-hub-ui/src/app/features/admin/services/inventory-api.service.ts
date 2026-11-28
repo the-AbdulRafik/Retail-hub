@@ -1,8 +1,8 @@
-﻿
+﻿import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
+import { PaginatedResponse } from '../../../core/models/pagination.models';
 
 export interface InventoryItem {
   productId: number;
@@ -31,16 +31,6 @@ export interface UpdateInventoryRequest {
   rowVersion: string;
 }
 
-export interface InventoryPaginatedResponse {
-  items: InventoryItem[];
-  currentPage: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-}
-
 @Injectable({
   providedIn: 'root',
 })
@@ -52,12 +42,12 @@ export class InventoryApiService {
 
   getInventory(
     query: InventoryQueryParameters,
-  ): Observable<InventoryPaginatedResponse> {
-    return this.http.get<InventoryPaginatedResponse>(this.apiUrl, {
+  ): Observable<PaginatedResponse<InventoryItem>> {
+    return this.http.get<PaginatedResponse<InventoryItem>>(this.apiUrl, {
       params: {
         page: String(query.page),
         pageSize: String(query.pageSize),
-        search: query.search ?? '',
+        ...(query.search ? { search: query.search } : {}),
         lowStockOnly: String(query.lowStockOnly ?? false),
       },
     });

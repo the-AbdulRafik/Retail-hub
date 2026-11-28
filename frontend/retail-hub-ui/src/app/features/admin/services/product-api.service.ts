@@ -1,9 +1,8 @@
-import { PaginatedResponse } from '../../../core/models/pagination.models';
-
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
+import { PaginatedResponse } from '../../../core/models/pagination.models';
 
 export interface Product {
   id: number;
@@ -73,9 +72,9 @@ export class ProductApiService {
       params: {
         page: String(query.page),
         pageSize: String(query.pageSize),
-        search: query.search ?? '',
-        categoryId: query.categoryId ? String(query.categoryId) : '',
-        brandId: query.brandId ? String(query.brandId) : '',
+        ...(query.search ? { search: query.search } : {}),
+        ...(query.categoryId !== undefined ? { categoryId: String(query.categoryId) } : {}),
+        ...(query.brandId !== undefined ? { brandId: String(query.brandId) } : {}),
         ...(query.packagingType ? { packagingType: query.packagingType } : {}),
         ...(query.minPrice !== undefined ? { minPrice: String(query.minPrice) } : {}),
         ...(query.maxPrice !== undefined ? { maxPrice: String(query.maxPrice) } : {}),

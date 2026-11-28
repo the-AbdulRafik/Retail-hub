@@ -1,8 +1,8 @@
-﻿
+﻿import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../../../core/config/api.config';
+import { PaginatedResponse } from '../../../core/models/pagination.models';
 
 export type OrderStatus =
   | 'Pending'
@@ -40,16 +40,6 @@ export interface OrdersQueryParameters {
   status?: OrderStatus;
 }
 
-export interface OrdersPaginatedResponse {
-  items: Order[];
-  currentPage: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-}
-
 export interface UpdateOrderStatusRequest {
   status: OrderStatus;
 }
@@ -65,12 +55,12 @@ export class OrdersApiService {
 
   getOrders(
     query: OrdersQueryParameters,
-  ): Observable<OrdersPaginatedResponse> {
-    return this.http.get<OrdersPaginatedResponse>(this.apiUrl, {
+  ): Observable<PaginatedResponse<Order>> {
+    return this.http.get<PaginatedResponse<Order>>(this.apiUrl, {
       params: {
         page: String(query.page),
         pageSize: String(query.pageSize),
-        search: query.search ?? '',
+        ...(query.search ? { search: query.search } : {}),
         ...(query.status ? { status: query.status } : {}),
       },
     });
