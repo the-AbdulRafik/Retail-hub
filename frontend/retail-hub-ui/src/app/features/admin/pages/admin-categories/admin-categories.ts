@@ -1,12 +1,7 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
-
+import { extractApiErrorMessage } from '../../../../core/models/api-error.models';
 import {
   Category,
   CategoryApiService,
@@ -43,7 +38,6 @@ export class AdminCategories implements OnInit {
     name: '',
     description: '',
   };
-  protected readonly canManageCategories = true;
 
   ngOnInit(): void {
     this.loadCategories();
@@ -79,27 +73,33 @@ export class AdminCategories implements OnInit {
         next: (categories) => {
           this.categories = categories;
         },
-        error: (error) => {
-          console.error('Failed to load categories:', error);
-          this.errorMessage =
-            'Unable to load categories. Please check whether the backend is running and try again.';
+        error: (error: unknown) => {
+          this.errorMessage = extractApiErrorMessage(
+            error,
+            'Unable to load categories. Please try again.',
+          );
         },
       });
   }
 
   protected openAddForm(): void {
-    if (!this.canManageCategories) return;
+    if (this.isSaving) {
+      return;
+    }
 
     this.isEditing = false;
     this.selectedCategoryId = null;
     this.formData = { name: '', description: '' };
     this.formError = '';
+    this.errorMessage = '';
     this.successMessage = '';
     this.showForm = true;
   }
 
   protected openEditForm(category: Category): void {
-    if (!this.canManageCategories) return;
+    if (this.isSaving) {
+      return;
+    }
 
     this.isEditing = true;
     this.selectedCategoryId = category.id;
@@ -108,12 +108,15 @@ export class AdminCategories implements OnInit {
       description: category.description ?? '',
     };
     this.formError = '';
+    this.errorMessage = '';
     this.successMessage = '';
     this.showForm = true;
   }
 
   protected saveCategory(): void {
-    if (!this.canManageCategories || this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
 
     const name = this.formData.name.trim();
     const description = this.formData.description.trim();
@@ -138,20 +141,20 @@ export class AdminCategories implements OnInit {
       description: description || null,
     };
 
+    const editingId = this.selectedCategoryId;
     this.isSaving = true;
     this.formError = '';
     this.errorMessage = '';
     this.successMessage = '';
 
     const operation =
-      this.selectedCategoryId === null
+      editingId === null
         ? this.categoryApi.createCategory(request)
-        : this.categoryApi.updateCategory(this.selectedCategoryId, {
+        : this.categoryApi.updateCategory(editingId, {
             ...request,
             isActive:
-              this.categories.find(
-                (category) => category.id === this.selectedCategoryId,
-              )?.isActive ?? true,
+              this.categories.find((category) => category.id === editingId)
+                ?.isActive ?? true,
           } satisfies UpdateCategoryRequest);
 
     operation
@@ -163,26 +166,30 @@ export class AdminCategories implements OnInit {
       )
       .subscribe({
         next: () => {
-          const wasEditing = this.selectedCategoryId !== null;
-
           this.showForm = false;
+          this.isEditing = false;
           this.selectedCategoryId = null;
-          this.successMessage = wasEditing
-            ? 'Category updated successfully.'
-            : 'Category created successfully.';
+          this.formData = { name: '', description: '' };
+          this.successMessage =
+            editingId !== null
+              ? 'Category updated successfully.'
+              : 'Category created successfully.';
 
           this.loadCategories();
         },
-        error: (error) => {
-          console.error('Failed to save category:', error);
-          this.formError =
-            'Unable to save the category. Please try again.';
+        error: (error: unknown) => {
+          this.formError = extractApiErrorMessage(
+            error,
+            'Unable to save the category. Please try again.',
+          );
         },
       });
   }
 
   protected reactivateCategory(category: Category): void {
-    if (!this.canManageCategories || this.isSaving || category.isActive) return;
+    if (this.isSaving || category.isActive) {
+      return;
+    }
 
     this.isSaving = true;
     this.errorMessage = '';
@@ -194,29 +201,38 @@ export class AdminCategories implements OnInit {
         description: category.description ?? null,
         isActive: true,
       })
-      .pipe(finalize(() => {
-        this.isSaving = false;
-        this.cdr.markForCheck();
-      }))
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+          this.cdr.markForCheck();
+        }),
+      )
       .subscribe({
         next: () => {
           this.successMessage = `${category.name} reactivated successfully.`;
           this.loadCategories();
         },
-        error: (error) => {
-          console.error('Failed to reactivate category:', error);
-          this.errorMessage = 'Unable to reactivate the category. Please try again.';
+        error: (error: unknown) => {
+          this.errorMessage = extractApiErrorMessage(
+            error,
+            'Unable to reactivate the category. Please try again.',
+          );
         },
       });
   }
+
   protected deactivateCategory(category: Category): void {
-    if (!this.canManageCategories || this.isSaving) return;
+    if (this.isSaving || !category.isActive) {
+      return;
+    }
 
     const confirmed = window.confirm(
-      'Are you sure you want to deactivate "' + category.name + '"?',
+      `Are you sure you want to deactivate "${category.name}"?`,
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     this.isSaving = true;
     this.errorMessage = '';
@@ -232,23 +248,27 @@ export class AdminCategories implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.successMessage =
-            category.name + ' deactivated successfully.';
+          this.successMessage = `${category.name} deactivated successfully.`;
           this.loadCategories();
         },
-        error: (error) => {
-          console.error('Failed to deactivate category:', error);
-          this.errorMessage =
-            'Unable to deactivate the category. Please try again.';
+        error: (error: unknown) => {
+          this.errorMessage = extractApiErrorMessage(
+            error,
+            'Unable to deactivate the category. Please try again.',
+          );
         },
       });
   }
 
   protected closeForm(): void {
-    if (this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
 
     this.showForm = false;
+    this.isEditing = false;
     this.selectedCategoryId = null;
+    this.formData = { name: '', description: '' };
     this.formError = '';
   }
 }

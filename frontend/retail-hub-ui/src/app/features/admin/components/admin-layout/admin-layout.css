@@ -90,6 +90,11 @@
   background: var(--color-primary);
 }
 
+.sidebar-navigation a:focus-visible {
+  outline: 2px solid #fdba74;
+  outline-offset: 2px;
+}
+
 .nav-icon {
   width: 22px;
   text-align: center;
@@ -120,6 +125,13 @@
 .sidebar-footer strong,
 .sidebar-footer small {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-identity {
+  min-width: 0;
 }
 
 .sidebar-footer strong {
@@ -165,6 +177,12 @@
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  border-radius: var(--radius-sm);
+}
+
+.portal-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
 }
 
 .admin-page {
