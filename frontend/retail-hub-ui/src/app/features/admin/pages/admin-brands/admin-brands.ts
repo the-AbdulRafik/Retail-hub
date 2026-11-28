@@ -1,8 +1,7 @@
-
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
-
+import { extractApiErrorMessage } from '../../../../core/models/api-error.models';
 import {
   Brand,
   BrandApiService,
@@ -35,8 +34,6 @@ export class AdminBrands implements OnInit {
   protected formName = '';
   protected formDescription = '';
   protected formError = '';
-
-  protected readonly canManageBrands = true;
 
   ngOnInit(): void {
     this.loadBrands();
@@ -72,46 +69,59 @@ export class AdminBrands implements OnInit {
         next: (brands) => {
           this.brands = brands;
         },
-        error: (error) => {
-          console.error('Failed to load brands:', error);
-          this.errorMessage =
-            'Unable to load brands. Please check whether the backend is running and try again.';
+        error: (error: unknown) => {
+          this.errorMessage = extractApiErrorMessage(
+            error,
+            'Unable to load brands. Please try again.',
+          );
         },
       });
   }
 
   protected openCreateForm(): void {
-    if (!this.canManageBrands) return;
+    if (this.isSaving) {
+      return;
+    }
 
     this.editingBrandId = null;
     this.formName = '';
     this.formDescription = '';
     this.formError = '';
+    this.errorMessage = '';
     this.successMessage = '';
     this.isFormOpen = true;
   }
 
   protected openEditForm(brand: Brand): void {
-    if (!this.canManageBrands) return;
+    if (this.isSaving) {
+      return;
+    }
 
     this.editingBrandId = brand.id;
     this.formName = brand.name;
     this.formDescription = brand.description ?? '';
     this.formError = '';
+    this.errorMessage = '';
     this.successMessage = '';
     this.isFormOpen = true;
   }
 
   protected closeForm(): void {
-    if (this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
 
     this.isFormOpen = false;
     this.editingBrandId = null;
+    this.formName = '';
+    this.formDescription = '';
     this.formError = '';
   }
 
   protected saveBrand(): void {
-    if (!this.canManageBrands || this.isSaving) return;
+    if (this.isSaving) {
+      return;
+    }
 
     const name = this.formName.trim();
     const description = this.formDescription.trim();
@@ -136,17 +146,19 @@ export class AdminBrands implements OnInit {
       description: description || null,
     };
 
+    const editingId = this.editingBrandId;
     this.isSaving = true;
     this.formError = '';
     this.errorMessage = '';
     this.successMessage = '';
 
     const operation =
-      this.editingBrandId === null
+      editingId === null
         ? this.brandApi.createBrand(request)
-        : this.brandApi.updateBrand(this.editingBrandId, {
+        : this.brandApi.updateBrand(editingId, {
             ...request,
-            isActive: this.brands.find((brand) => brand.id === this.editingBrandId)?.isActive ?? true,
+            isActive:
+              this.brands.find((brand) => brand.id === editingId)?.isActive ?? true,
           } satisfies UpdateBrandRequest);
 
     operation
@@ -159,24 +171,28 @@ export class AdminBrands implements OnInit {
       .subscribe({
         next: () => {
           this.isFormOpen = false;
+          this.editingBrandId = null;
+          this.formName = '';
+          this.formDescription = '';
           this.successMessage =
-            this.editingBrandId === null
+            editingId === null
               ? 'Brand created successfully.'
               : 'Brand updated successfully.';
-
-          this.editingBrandId = null;
           this.loadBrands();
         },
-        error: (error) => {
-          console.error('Failed to save brand:', error);
-          this.formError =
-            'Unable to save the brand. Please try again.';
+        error: (error: unknown) => {
+          this.formError = extractApiErrorMessage(
+            error,
+            'Unable to save the brand. Please try again.',
+          );
         },
       });
   }
 
   protected reactivateBrand(brand: Brand): void {
-    if (!this.canManageBrands || this.isSaving || brand.isActive) return;
+    if (this.isSaving || brand.isActive) {
+      return;
+    }
 
     this.isSaving = true;
     this.errorMessage = '';
@@ -188,29 +204,38 @@ export class AdminBrands implements OnInit {
         description: brand.description ?? null,
         isActive: true,
       })
-      .pipe(finalize(() => {
-        this.isSaving = false;
-        this.cdr.markForCheck();
-      }))
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+          this.cdr.markForCheck();
+        }),
+      )
       .subscribe({
         next: () => {
           this.successMessage = `${brand.name} reactivated successfully.`;
           this.loadBrands();
         },
-        error: (error) => {
-          console.error('Failed to reactivate brand:', error);
-          this.errorMessage = 'Unable to reactivate the brand. Please try again.';
+        error: (error: unknown) => {
+          this.errorMessage = extractApiErrorMessage(
+            error,
+            'Unable to reactivate the brand. Please try again.',
+          );
         },
       });
   }
+
   protected deactivateBrand(brand: Brand): void {
-    if (!this.canManageBrands || this.isSaving) return;
+    if (this.isSaving || !brand.isActive) {
+      return;
+    }
 
     const confirmed = window.confirm(
       `Are you sure you want to deactivate "${brand.name}"?`,
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     this.isSaving = true;
     this.errorMessage = '';
@@ -229,10 +254,11 @@ export class AdminBrands implements OnInit {
           this.successMessage = `${brand.name} deactivated successfully.`;
           this.loadBrands();
         },
-        error: (error) => {
-          console.error('Failed to deactivate brand:', error);
-          this.errorMessage =
-            'Unable to deactivate the brand. Please try again.';
+        error: (error: unknown) => {
+          this.errorMessage = extractApiErrorMessage(
+            error,
+            'Unable to deactivate the brand. Please try again.',
+          );
         },
       });
   }

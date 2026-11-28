@@ -1,10 +1,7 @@
 <section class="inventory-page">
-  <header class="page-header">
-    <div>
-      <h1>Inventory Management</h1>
-      <p>Monitor product stock levels and reorder requirements.</p>
-    </div>
-  </header>
+  <div class="page-heading">
+    <p class="page-subtitle">Monitor product stock levels, product status, and reorder requirements.</p>
+  </div>
 
   @if (successMessage) {
     <div class="success-message" role="status">
@@ -17,7 +14,7 @@
       type="search"
       placeholder="Search products..."
       [(ngModel)]="searchTerm"
-      (keyup.enter)="onFiltersChanged()"
+      (ngModelChange)="onSearchInputChanged()"
       aria-label="Search inventory"
     />
 
@@ -58,9 +55,10 @@
             <th>Brand</th>
             <th>Category</th>
             <th>Packaging</th>
-            <th>Stock</th>
-            <th>Reorder Level</th>
-            <th>Status</th>
+            <th>Product Status</th>
+            <th class="numeric-col">Stock</th>
+            <th class="numeric-col">Reorder Level</th>
+            <th>Stock Status</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -72,8 +70,16 @@
               <td>{{ item.brandName }}</td>
               <td>{{ item.categoryName }}</td>
               <td>{{ item.packagingType }} - {{ item.packagingSize }}</td>
-              <td>{{ item.stockQuantity }}</td>
-              <td>{{ item.reorderLevel }}</td>
+              <td>
+                <span
+                  class="active-badge"
+                  [class.inactive]="!item.isActive"
+                >
+                  {{ item.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="numeric-col">{{ item.stockQuantity }}</td>
+              <td class="numeric-col">{{ item.reorderLevel }}</td>
               <td>
                 <span
                   class="stock-status"
@@ -87,7 +93,7 @@
                 <button
                   type="button"
                   (click)="openUpdateForm(item)"
-                  [disabled]="!canManageInventory"
+                  [disabled]="isSaving"
                   title="Update stock"
                 >
                   Update
@@ -101,7 +107,7 @@
 
     <div class="pagination">
       <span>
-        Page {{ currentPage }} of {{ totalPages }} ·
+        Page {{ currentPage }} of {{ totalPages }} &middot;
         {{ totalCount }} records
       </span>
 
@@ -127,7 +133,7 @@
 
   @if (showForm && selectedItem) {
     <div class="inventory-form-overlay">
-      <form class="inventory-form" (ngSubmit)="updateStock()">
+      <form class="inventory-form" role="dialog" aria-modal="true" aria-label="Update inventory" (ngSubmit)="updateStock()">
         <h2>Update Inventory</h2>
         <p>{{ selectedItem.productName }}</p>
 
@@ -154,14 +160,31 @@
         />
 
         @if (formError) {
-          <p class="error-state" role="alert">{{ formError }}</p>
+          <div class="error-state" role="alert">
+            <p>{{ formError }}</p>
+            @if (hasConcurrencyConflict) {
+              <button
+                type="button"
+                (click)="reloadLatestItem()"
+                [disabled]="isReloadingConflict"
+              >
+                {{ isReloadingConflict ? 'Reloading...' : 'Reload Latest Stock' }}
+              </button>
+            }
+          </div>
         }
 
         <div class="form-actions">
-          <button type="button" (click)="closeForm()">Cancel</button>
+          <button
+            type="button"
+            (click)="closeForm()"
+            [disabled]="isSaving || isReloadingConflict"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
-            [disabled]="!canManageInventory || isSaving"
+            [disabled]="isSaving || isReloadingConflict || hasConcurrencyConflict"
           >
             {{ isSaving ? 'Saving...' : 'Save Changes' }}
           </button>

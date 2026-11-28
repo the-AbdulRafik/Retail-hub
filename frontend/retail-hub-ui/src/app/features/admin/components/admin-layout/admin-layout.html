@@ -1,4 +1,3 @@
-
 <div class="admin-workspace">
   <aside class="admin-sidebar">
     <div class="sidebar-heading">
@@ -25,10 +24,10 @@
     </nav>
 
     <div class="sidebar-footer">
-      <span class="admin-avatar">A</span>
-      <div>
-        <strong>Administrator</strong>
-        <small>Store management</small>
+      <span class="admin-avatar">{{ adminInitial() }}</span>
+      <div class="admin-identity">
+        <strong>{{ adminDisplayName() }}</strong>
+        <small>{{ adminEmail() }}</small>
       </div>
     </div>
   </aside>
@@ -36,10 +35,10 @@
   <section class="admin-content">
     <header class="admin-topbar">
       <div>
-        <span class="breadcrumb">RetailHub / Administration</span>
-        <h1>Admin Workspace</h1>
+        <span class="breadcrumb">RetailHub / Administration / {{ breadcrumbSection() }}</span>
+        <h1>{{ pageTitle() }}</h1>
       </div>
-      <a routerLink="/customer" class="portal-link">View Customer Portal ↗</a>
+      <a routerLink="/customer" class="portal-link">View Customer Portal &#8599;</a>
     </header>
 
     <main class="admin-page">

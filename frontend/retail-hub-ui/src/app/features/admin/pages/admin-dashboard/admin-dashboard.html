@@ -1,27 +1,62 @@
 ﻿<section class="dashboard">
   <div class="page-heading">
-    <div>
-      <h2>Dashboard Overview</h2>
-      <p>Recent orders and inventory alerts.</p>
+    <p class="page-subtitle">Live store counts, recent orders, and inventory alerts.</p>
+  </div>
+
+  @if (catalogStatsError) {
+    <div class="error-message" role="alert">
+      <span>{{ catalogStatsError }}</span>
+      <button class="retry-button" type="button" (click)="loadCatalogStats()">Retry</button>
     </div>
+  }
+
+  <div class="stats-grid">
+    <a class="stat-card" routerLink="/admin/orders">
+      <span class="stat-label">Total Orders</span>
+      <strong>{{ isLoadingOrders ? '...' : totalOrdersCount }}</strong>
+      <small>All customer orders</small>
+    </a>
+
+    <a class="stat-card" routerLink="/admin/products">
+      <span class="stat-label">Active Products</span>
+      <strong>{{ isLoadingCatalogStats ? '...' : activeProductsCount }}</strong>
+      <small>Visible in storefront</small>
+    </a>
+
+    <a class="stat-card" routerLink="/admin/inventory">
+      <span class="stat-label">Low Stock Alerts</span>
+      <strong class="alert-metric">{{ isLoadingInventory ? '...' : totalLowStockCount }}</strong>
+      <small>At or below reorder level</small>
+    </a>
+
+    <a class="stat-card" routerLink="/admin/categories">
+      <span class="stat-label">Active Taxonomy</span>
+      <strong>
+        {{ isLoadingCatalogStats ? '...' : activeCategoriesCount + ' / ' + activeBrandsCount }}
+      </strong>
+      <small>Categories / Brands</small>
+    </a>
   </div>
 
   <section class="dashboard-grid">
     <article class="panel orders-panel">
       <div class="panel-heading">
         <div>
-          <h3>Recent Orders</h3>
+          <h2>Recent Orders</h2>
           <p>Latest orders (up to 5)</p>
         </div>
+        <a class="panel-link" routerLink="/admin/orders">Manage Orders</a>
       </div>
 
       @if (isLoadingOrders) {
-        <p>Loading recent orders...</p>
+        <p class="state-message" role="status">Loading recent orders...</p>
       } @else if (ordersError) {
-        <p class="error-message">{{ ordersError }}</p>
-        <button type="button" (click)="loadRecentOrders()">Retry</button>
+        <div class="error-message" role="alert">
+          <span>{{ ordersError }}</span>
+          <button class="retry-button" type="button" (click)="loadRecentOrders()">Retry</button>
+        </div>
       } @else if (recentOrders.length === 0) {
-        <p>No recent orders found.</p>
+        <p class="state-message">No recent orders found.</p>
       } @else {
         <div class="table-wrapper">
           <table>
@@ -30,20 +65,26 @@
                 <th>Order</th>
                 <th>Customer</th>
                 <th>Date</th>
-                <th>Items</th>
-                <th>Total</th>
+                <th class="numeric-col">Items</th>
+                <th class="numeric-col">Total</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               @for (order of recentOrders; track order.id) {
                 <tr>
-                  <td>{{ order.orderNumber }}</td>
+                  <td class="order-id">{{ order.orderNumber }}</td>
                   <td>{{ order.customerName }}</td>
-                  <td>{{ formatDate(order.createdAt) }}</td>
-                  <td>{{ getItemCount(order) }}</td>
-                  <td>{{ order.totalAmount | currency:'INR':'symbol':'1.2-2' }}</td>
-                  <td>{{ order.status }}</td>
+                  <td class="date-cell">{{ formatDate(order.createdAt) }}</td>
+                  <td class="numeric-col">{{ getItemCount(order) }}</td>
+                  <td class="amount-cell">
+                    {{ order.totalAmount | currency:'INR':'symbol':'1.2-2' }}
+                  </td>
+                  <td>
+                    <span class="status-badge" [class]="getStatusClass(order.status)">
+                      {{ order.status }}
+                    </span>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -55,29 +96,38 @@
     <article class="panel inventory-panel">
       <div class="panel-heading">
         <div>
-          <h3>Low Stock Alerts</h3>
+          <h2>Low Stock Alerts</h2>
           <p>Matching inventory records (up to 5)</p>
         </div>
+        <a class="panel-link" routerLink="/admin/inventory">Manage Stock</a>
       </div>
 
       @if (isLoadingInventory) {
-        <p>Loading low-stock inventory...</p>
+        <p class="state-message" role="status">Loading low-stock inventory...</p>
       } @else if (inventoryError) {
-        <p class="error-message">{{ inventoryError }}</p>
-        <button type="button" (click)="loadLowStockProducts()">Retry</button>
+        <div class="error-message" role="alert">
+          <span>{{ inventoryError }}</span>
+          <button class="retry-button" type="button" (click)="loadLowStockProducts()">Retry</button>
+        </div>
       } @else if (lowStockProducts.length === 0) {
-        <p>No low-stock inventory records found.</p>
+        <p class="state-message">No low-stock inventory records found.</p>
       } @else {
         <div class="stock-list">
           @for (product of lowStockProducts; track product.productId) {
             <div class="stock-item">
-              <div>
-                <h4>{{ product.productName }}</h4>
-                <p>{{ product.categoryName }}</p>
-              </div>
-              <div class="stock-details">
-                <span>Available: {{ product.stockQuantity }}</span>
-                <span>Reorder level: {{ product.reorderLevel }}</span>
+              <div class="stock-info">
+                <div>
+                  <strong>{{ product.productName }}</strong>
+                  <small>
+                    {{ product.categoryName }}
+                    @if (!product.isActive) {
+                      (Inactive)
+                    }
+                  </small>
+                </div>
+                <span class="stock-quantity">
+                  {{ product.stockQuantity }} / {{ product.reorderLevel }}
+                </span>
               </div>
             </div>
           }
