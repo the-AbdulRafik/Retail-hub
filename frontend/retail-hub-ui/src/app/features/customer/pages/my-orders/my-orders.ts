@@ -7,6 +7,7 @@ import { extractApiErrorMessage } from '../../../../core/models/api-error.models
 import { PaginatedResponse } from '../../../../core/models/pagination.models';
 import { ORDER_STATUSES, OrderResponse, OrderStatus } from '../../models/order.model';
 import { OrderService } from '../../services/order.service';
+import { normalizeUtcDate } from '../../utils/customer.utils';
 
 @Component({
   selector: 'app-my-orders',
@@ -53,6 +54,9 @@ export class MyOrders {
               }),
               catchError((error: unknown) => {
                 this.orders.set([]);
+                this.totalPages.set(0);
+                this.hasPreviousPage.set(false);
+                this.hasNextPage.set(false);
                 this.loading.set(false);
                 this.errorMessage.set(
                   extractApiErrorMessage(error, 'Unable to load your orders. Please try again.'),
@@ -85,12 +89,21 @@ export class MyOrders {
   }
 
   changePage(page: number): void {
-    if (page < 1 || page === this.page()) {
+    if (page < 1 || page === this.page() || (this.totalPages() > 0 && page > this.totalPages())) {
       return;
     }
     this.page.set(page);
     this.loadOrders();
   }
+
+  resetFilters(): void {
+    this.search.set('');
+    this.status.set('');
+    this.page.set(1);
+    this.loadOrders();
+  }
+
+  readonly normalizeUtcDate = normalizeUtcDate;
 
   loadOrders(): void {
     this.loading.set(true);

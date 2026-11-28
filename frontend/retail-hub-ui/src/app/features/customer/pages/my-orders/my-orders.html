@@ -1,4 +1,4 @@
-<main class="orders-page">
+<section class="orders-page">
   <a routerLink="/customer" class="back-link">← Continue shopping</a>
   <h1>My Orders</h1>
 
@@ -10,6 +10,7 @@
         maxlength="100"
         [value]="search()"
         (input)="updateSearch($event)"
+        (search)="applySearch($event)"
         placeholder="e.g. ORD-20261127-0101"
       />
     </label>
@@ -23,6 +24,9 @@
       </select>
     </label>
     <button type="submit">Search</button>
+    @if (search() || status()) {
+      <button type="button" class="reset-filter-btn" (click)="resetFilters()">Reset</button>
+    }
   </form>
 
   @if (loading()) {
@@ -46,7 +50,7 @@
           <div class="order-heading">
             <div>
               <h2>{{ order.orderNumber }}</h2>
-              <p>Placed {{ order.createdAt | date:'medium' }}</p>
+              <p>Placed {{ normalizeUtcDate(order.createdAt) | date:'medium' }}</p>
             </div>
             <span class="status-pill" [class]=" 'status-pill status-' + order.status.toLowerCase() ">
               {{ order.status }}
@@ -70,4 +74,4 @@
       </nav>
     }
   }
-</main>
+</section>

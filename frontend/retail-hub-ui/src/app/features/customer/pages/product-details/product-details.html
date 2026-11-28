@@ -1,21 +1,26 @@
 
 @if (loading()) {
-  <main class="not-found">
+  <section class="not-found">
     <h2 role="status">Loading product...</h2>
-  </main>
+  </section>
 } @else if (errorMessage()) {
-  <main class="not-found">
+  <section class="not-found">
     <h2>Product Unavailable</h2>
     <p role="alert">{{ errorMessage() }}</p>
     <a routerLink="/customer" class="back-button">Back to Shopping</a>
-  </main>
+  </section>
 } @else if (product(); as product) {
 
-  <main class="details-page">
+  <section class="details-page">
 
-    <a routerLink="/customer" class="back-link">
-      <span>←</span> Back to Shopping
-    </a>
+    <div class="top-nav">
+      <a routerLink="/customer" class="back-link">
+        <span>←</span> Back to Shopping
+      </a>
+      <a routerLink="/customer/cart" class="cart-link">
+        Cart ({{ cartItemCount() }})
+      </a>
+    </div>
 
     <section class="product-details">
 
@@ -75,7 +80,7 @@
             <button
               type="button"
               (click)="decreaseQuantity()"
-              [disabled]="quantity() === 1 || product.stockQuantity === 0"
+              [disabled]="quantity() <= 1 || product.stockQuantity === 0"
               aria-label="Decrease quantity"
             >
               −
@@ -105,7 +110,7 @@
           type="button"
           class="add-cart-button"
           (click)="addToCart()"
-          [disabled]="product.stockQuantity === 0 || quantity() < 1 || quantity() > product.stockQuantity"
+          [disabled]="!product.isActive || product.stockQuantity === 0 || quantity() < 1 || quantity() > product.stockQuantity"
         >
           Add to Cart
         </button>
@@ -125,11 +130,11 @@
 
     </section>
 
-  </main>
+  </section>
 
 } @else {
 
-  <main class="not-found">
+  <section class="not-found">
 
     <div class="not-found-icon">🛍️</div>
 
@@ -143,6 +148,6 @@
       Back to Shopping
     </a>
 
-  </main>
+  </section>
 
 }

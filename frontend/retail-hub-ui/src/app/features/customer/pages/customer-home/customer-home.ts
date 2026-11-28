@@ -16,6 +16,7 @@ import { PaginatedResponse } from '../../../../core/models/pagination.models';
 import { CartService } from '../../../../core/services/cart.service';
 import { Product, ProductOption } from '../../models/product.model';
 import { ProductService } from '../../services/product.service';
+import { fetchLiveCartValidation } from '../../utils/customer.utils';
 
 @Component({
   selector: 'app-customer-home',
@@ -89,6 +90,10 @@ export class CustomerHome {
               }),
               catchError((error: unknown) => {
                 this.products.set([]);
+                this.totalCount.set(0);
+                this.totalPages.set(0);
+                this.hasPreviousPage.set(false);
+                this.hasNextPage.set(false);
                 this.loading.set(false);
                 this.errorMessage.set(
                   extractApiErrorMessage(error, 'Unable to load products. Please try again.'),
@@ -109,6 +114,9 @@ export class CustomerHome {
         this.page.set(1);
         this.loadProducts();
       });
+
+    this.loadProducts();
+    this.revalidateStoredCart();
   }
 
   selectCategory(categoryId: number | null): void {
@@ -178,7 +186,9 @@ export class CustomerHome {
   }
 
   changePage(page: number): void {
-    if (page < 1 || page === this.page()) return;
+    if (page < 1 || page === this.page() || (this.totalPages() > 0 && page > this.totalPages())) {
+      return;
+    }
     this.page.set(page);
     this.loadProducts();
   }
@@ -227,6 +237,37 @@ export class CustomerHome {
           this.brands.set([]);
           this.brandError.set(extractApiErrorMessage(error, 'Unable to load brands.'));
         },
+      });
+  }
+
+  private revalidateStoredCart(): void {
+    const currentItems = this.cartService.items();
+    if (currentItems.length === 0) {
+      return;
+    }
+
+    fetchLiveCartValidation(this.productService, currentItems)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ liveProducts, unavailableProductIds }) => {
+        for (const item of currentItems) {
+          if (unavailableProductIds.has(item.productId)) {
+            this.cartService.updateItemMetadata(item.productId, { maxStock: 0 });
+            continue;
+          }
+
+          const product = liveProducts.get(item.productId);
+          if (product) {
+            if (item.quantity > product.stockQuantity) {
+              this.cartService.updateQuantity(item.productId, product.stockQuantity);
+            }
+            if (product.stockQuantity !== item.maxStock || product.price !== item.unitPrice) {
+              this.cartService.updateItemMetadata(item.productId, {
+                maxStock: product.stockQuantity,
+                unitPrice: product.price,
+              });
+            }
+          }
+        }
       });
   }
 

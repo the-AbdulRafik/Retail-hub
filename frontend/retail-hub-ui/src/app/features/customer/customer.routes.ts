@@ -35,4 +35,8 @@ export const CUSTOMER_ROUTES: Routes = [
     loadComponent: () =>
       import('./pages/order-details/order-details').then((m) => m.OrderDetails),
   },
+  {
+    path: '**',
+    redirectTo: '',
+  },
 ];

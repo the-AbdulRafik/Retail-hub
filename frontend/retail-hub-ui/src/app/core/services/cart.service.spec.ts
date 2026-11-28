@@ -5,8 +5,14 @@ describe('CartService', () => {
   let cartService: CartService;
 
   beforeEach(() => {
+    localStorage.clear();
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({});
     cartService = TestBed.inject(CartService);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it('adds, updates, removes, and clears items with accurate subtotals and totals', () => {
@@ -31,5 +37,54 @@ describe('CartService', () => {
     cartService.clearCart();
     expect(cartService.isEmpty()).toBe(true);
     expect(cartService.total()).toBe(0);
+  });
+
+  it('persists cart items to localStorage and restores them upon service initialization', () => {
+    cartService.addItem({ productId: 10, productName: 'Pasta', unitPrice: 4.5, maxStock: 10 }, 3);
+
+    const storedRaw = localStorage.getItem('retailhub.customer.cart');
+    expect(storedRaw).toBeTruthy();
+    expect(storedRaw).toContain('"productId":10');
+    expect(storedRaw).toContain('"quantity":3');
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const restoredService = TestBed.inject(CartService);
+
+    expect(restoredService.items()).toHaveLength(1);
+    expect(restoredService.items()[0].productName).toBe('Pasta');
+    expect(restoredService.itemCount()).toBe(3);
+    expect(restoredService.total()).toBe(13.5);
+  });
+
+  it('removes the storage key when the cart is cleared', () => {
+    cartService.addItem({ productId: 10, productName: 'Pasta', unitPrice: 4.5 }, 2);
+    expect(localStorage.getItem('retailhub.customer.cart')).toBeTruthy();
+
+    cartService.clearCart();
+    expect(localStorage.getItem('retailhub.customer.cart')).toBeNull();
+  });
+
+  it('handles invalid or corrupted localStorage data gracefully without throwing', () => {
+    localStorage.setItem('retailhub.customer.cart', '{ invalid json ');
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({});
+    const fallbackService = TestBed.inject(CartService);
+
+    expect(fallbackService.isEmpty()).toBe(true);
+    expect(fallbackService.total()).toBe(0);
+  });
+
+  it('updates item metadata such as live stock and price', () => {
+    cartService.addItem({ productId: 5, productName: 'Cereal', unitPrice: 5.0, maxStock: 10 }, 4);
+
+    cartService.updateItemMetadata(5, { maxStock: 2, unitPrice: 6.0 });
+
+    const item = cartService.items()[0];
+    expect(item.quantity).toBe(4);
+    expect(item.maxStock).toBe(2);
+    expect(item.unitPrice).toBe(6.0);
+    expect(item.subtotal).toBe(24.0);
   });
 });
