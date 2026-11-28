@@ -1,0 +1,54 @@
+<main class="checkout-page">
+  <a routerLink="/customer/cart" class="back-link">← Back to cart</a>
+  <h1>Checkout</h1>
+
+  @if (errorMessage()) {
+    <p class="error-message" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (isEmpty()) {
+    <section class="state-card">
+      <h2>Your cart is empty</h2>
+      <p>Add products before continuing to checkout.</p>
+      <a routerLink="/customer" class="primary-link">Browse products</a>
+    </section>
+  } @else {
+    <div class="checkout-layout">
+      <section class="checkout-items" aria-labelledby="items-title">
+        <h2 id="items-title">Review your items</h2>
+        @for (item of items(); track item.productId) {
+          <article class="checkout-item">
+            <div>
+              <h3>{{ item.productName }}</h3>
+              @if (item.packagingDetails) {
+                <p>{{ item.packagingDetails }}</p>
+              }
+              <p>{{ item.quantity }} × {{ item.unitPrice | number:'1.2-2' }}</p>
+            </div>
+            <strong>{{ item.subtotal | number:'1.2-2' }}</strong>
+          </article>
+        }
+        <p class="contract-note">
+          The current order API does not accept a delivery address or delivery instructions.
+          No address will be collected or sent.
+        </p>
+      </section>
+
+      <aside class="summary" aria-label="Order summary">
+        <h2>Order summary</h2>
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong>{{ subtotal() | number:'1.2-2' }}</strong>
+        </div>
+        <div class="summary-row total">
+          <span>Cart total</span>
+          <strong>{{ total() | number:'1.2-2' }}</strong>
+        </div>
+        <p>Final prices and totals are calculated by the server when the order is placed.</p>
+        <button type="button" [disabled]="submitting() || isEmpty()" (click)="placeOrder()">
+          {{ submitting() ? 'Placing order...' : 'Place order' }}
+        </button>
+      </aside>
+    </div>
+  }
+</main>

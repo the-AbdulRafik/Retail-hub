@@ -1,0 +1,78 @@
+<main class="cart-page">
+  <a routerLink="/customer" class="continue-link">← Continue shopping</a>
+  <h1>Shopping Cart</h1>
+
+  @if (errorMessage()) {
+    <p class="cart-error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (isEmpty()) {
+    <section class="state-card">
+      <h2>Your cart is empty</h2>
+      <p>Explore the catalog and add products to get started.</p>
+      <a routerLink="/customer" class="primary-link">Browse products</a>
+    </section>
+  } @else {
+    <div class="cart-layout">
+      <section class="cart-items" aria-label="Cart items">
+        @for (item of items(); track item.productId) {
+          <article class="cart-item">
+            @if (item.imageUrl && !failedImageIds().has(item.productId)) {
+              <img
+                [src]="item.imageUrl"
+                [alt]="item.productName"
+                (error)="markImageFailed(item.productId)"
+              />
+            } @else {
+              <div class="image-placeholder" aria-label="No product image">No image</div>
+            }
+
+            <div class="item-info">
+              <h2>{{ item.productName }}</h2>
+              @if (item.packagingDetails) {
+                <p>{{ item.packagingDetails }}</p>
+              }
+              <p>Unit price: {{ item.unitPrice | number:'1.2-2' }}</p>
+              <label [for]="'quantity-' + item.productId">Quantity</label>
+              <input
+                [id]="'quantity-' + item.productId"
+                type="number"
+                min="1"
+                [attr.max]="item.maxStock ?? null"
+                [value]="item.quantity"
+                [disabled]="item.maxStock === 0"
+                (change)="changeQuantity(item, $event)"
+              />
+              @if (item.maxStock !== undefined) {
+                <small>{{ item.maxStock > 0 ? item.maxStock + ' available' : 'Currently unavailable' }}</small>
+              }
+              <button type="button" class="remove-button" (click)="removeItem(item.productId)">
+                Remove
+              </button>
+            </div>
+
+            <strong class="line-total">{{ item.subtotal | number:'1.2-2' }}</strong>
+          </article>
+        }
+      </section>
+
+      <aside class="summary">
+        <h2>Order summary</h2>
+        <div class="summary-row">
+          <span>Items ({{ itemCount() }})</span>
+          <strong>{{ subtotal() | number:'1.2-2' }}</strong>
+        </div>
+        <div class="summary-row total">
+          <span>Total</span>
+          <strong>{{ total() | number:'1.2-2' }}</strong>
+        </div>
+        <p>Discounts and delivery charges are not supported by the current cart contract.</p>
+        @if (isEmpty()) {
+          <button type="button" disabled>Proceed to checkout</button>
+        } @else {
+          <a routerLink="/customer/checkout" class="checkout-link">Proceed to checkout</a>
+        }
+      </aside>
+    </div>
+  }
+</main>
