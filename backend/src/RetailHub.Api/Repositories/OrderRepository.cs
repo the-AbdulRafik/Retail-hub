@@ -154,6 +154,18 @@ public sealed class OrderRepository(ApplicationDbContext dbContext) : IOrderRepo
                 $"Cannot transition order '{order.OrderNumber}' from '{order.Status}' to '{newStatus}'.");
         }
 
+        var updatedCount = await dbContext.Orders
+            .Where(o => o.Id == orderId && o.Status == order.Status)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(o => o.Status, newStatus),
+                cancellationToken);
+
+        if (updatedCount == 0)
+        {
+            throw new ConflictException(
+                $"Order '{order.OrderNumber}' was updated by another request. Refresh and retry.");
+        }
+
         if (newStatus == OrderStatus.Cancelled)
         {
             foreach (var item in order.OrderItems.OrderBy(i => i.ProductId))
@@ -167,7 +179,6 @@ public sealed class OrderRepository(ApplicationDbContext dbContext) : IOrderRepo
         }
 
         order.Status = newStatus;
-        await dbContext.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return order;

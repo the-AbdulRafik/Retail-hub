@@ -302,7 +302,7 @@ export class AdminProducts implements OnInit {
       !this.formData.packagingSize.trim() ||
       !Number.isFinite(price) ||
       price < 0 ||
-      price > 999999.99 ||
+      price > 9999999999999999.99 ||
       !Number.isInteger(stockQuantity) ||
       stockQuantity < 0 ||
       !Number.isInteger(reorderLevel) ||
